@@ -1,0 +1,46 @@
+#GitIgnore
+
+# IDE files
+.idea
+
+# Python bytecode
+**/__pycache__/
+*.py[cod]
+__pycache__/
+*.sqlite3
+
+# Virtualenv
+venv/
+.venv/
+
+# Environment files
+.env
+
+# Logs
+logs/
+# Docker
+*.log
+
+# Firebase service account (секрет)
+credentials/
+
+# User uploads
+shop/media/
+
+# Virtual environment
+env/
+
+# Django
+db.sqlite3
+/media/
+staticfiles/
+
+# VSCode / PyCharm
+.idea/
+.vscode/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+
