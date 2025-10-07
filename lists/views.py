@@ -1,3 +1,6 @@
+from django.contrib.auth.forms import UserCreationForm
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
 from rest_framework import permissions, viewsets
 
 from .models import Item, Wishlist
@@ -28,3 +31,9 @@ class ItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Item.objects.filter(wishlist__owner=self.request.user).select_related("wishlist")
+
+
+class RegisterView(CreateView):
+    form_class = UserCreationForm
+    template_name = "registration/register.html"
+    success_url = reverse_lazy("login")

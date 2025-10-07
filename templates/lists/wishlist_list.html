@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}My Wishlists{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">My Wishlists</h2>
+<a href="{% url 'wishlist_create' %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
+<ul class="space-y-2">
+    {% for wl in object_list %}
+        <li class="bg-white p-3 shadow rounded">
+            <a href="{% url 'wishlist_detail' wl.id %}" class="text-blue-600 font-medium">{{ wl.title }}</a>
+            <p class="text-sm text-gray-500">{{ wl.description|default:"No description" }}</p>
+        </li>
+    {% empty %}
+        <p>No wishlists yet.</p>
+    {% endfor %}
+</ul>
+{% endblock %}
