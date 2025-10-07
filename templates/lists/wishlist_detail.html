@@ -3,7 +3,11 @@
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">{{ object.title }}</h2>
 <p class="mb-6 text-gray-600">{{ object.description }}</p>
-<a href="{% url 'item_create' pk=object.id %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
+<div class="mb-4 space-x-2">
+    <a href="{% url 'wishlist_edit' object.id %}" class="px-3 py-1 rounded bg-yellow-500 text-white">Edit</a>
+    <a href="{% url 'wishlist_delete' object.id %}" class="px-3 py-1 rounded bg-red-600 text-white">Delete</a>
+    <a href="{% url 'item_create' pk=object.id %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
+</div>
 <h3 class="text-xl font-semibold mb-3">Items</h3>
 <ul class="space-y-2">
     {% for item in object.items.all %}
@@ -12,6 +16,10 @@
             {% if item.url %}
                 <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>
             {% endif %}
+            <div class="float-right space-x-2">
+              <a href="{% url 'item_edit' item.id %}" class="text-yellow-600">Edit</a>
+              <a href="{% url 'item_delete' item.id %}" class="text-red-600">Delete</a>
+            </div>
         </li>
     {% empty %}
         <p>No items yet.</p>

@@ -4,12 +4,13 @@
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">Add item to wishlist</h2>
 <form method="post" class="space-y-3">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div>{{ form.title.label_tag }} {{ form.title }}</div>
-  <div>{{ form.url.label_tag }} {{ form.url }}</div>
-  <div>{{ form.note.label_tag }} {{ form.note }}</div>
-  <div>{{ form.image_url.label_tag }} {{ form.image_url }}</div>
-  <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Create</button>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>{{ form.title.label_tag }} {{ form.title }}</div>
+    <div>{{ form.url.label_tag }} {{ form.url }}</div>
+    <div>{{ form.note.label_tag }} {{ form.note }}</div>
+    <div>{{ form.image_url.label_tag }} {{ form.image_url }}</div>
+    <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline">Cancel</a>
+    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded"> {% if object %}Save{% else %}Create{% endif %} </button>
 </form>
 {% endblock %}
