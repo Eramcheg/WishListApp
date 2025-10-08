@@ -14,6 +14,11 @@ class Wishlist(models.Model):
     share_token = models.CharField(max_length=32, blank=True, null=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "title"], name="unique_owner_title")
+        ]
+
 
 class Item(models.Model):
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")

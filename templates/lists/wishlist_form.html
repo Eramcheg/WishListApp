@@ -5,9 +5,26 @@
 <h2 class="text-2xl font-bold mb-4">Create wishlist</h2>
 <form method="post" class="space-y-3">
     {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div>{{ form.title.label_tag }} {{ form.title }}</div>
-    <div>{{ form.description.label_tag }} {{ form.description }}</div>
+    {% if form.non_field_errors %}
+      <div class="bg-red-100 text-red-800 border border-red-300 p-3 rounded mb-3">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="mb-3">
+        {{ form.title.label_tag }} {{ form.title }}
+        {% for error in form.title.errors %}
+          <div class="text-red-600 text-sm">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        {{ form.description.label_tag }} {{ form.description }}
+        {% for error in form.description.errors %}
+          <div class="text-red-600 text-sm">{{ error }}</div>
+        {% endfor %}
+    </div>
     <div>
         <label class="inline-flex items-center">
             {{ form.is_public }} <span class="ml-2">Public</span>

@@ -12,6 +12,9 @@
 <ul class="space-y-2">
     {% for item in object.items.all %}
         <li class="bg-white p-3 shadow rounded">
+            {% if item.image_url %}
+                <img alt="{{ item.title }}" src="{{ item.image_url }}" class="w-16 h-16 mr-4">
+            {% endif %}
             <span class="font-medium">{{ item.title }}</span>
             {% if item.url %}
                 <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>

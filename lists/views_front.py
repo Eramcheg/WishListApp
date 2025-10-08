@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
@@ -65,6 +66,9 @@ class WishlistDetailView(DetailView):
     model = Wishlist
     template_name = "lists/wishlist_detail.html"
 
+    def get_queryset(self):
+        return Wishlist.objects.filter(owner=self.request.user)
+
 
 @method_decorator(login_required, name="dispatch")
 class WishlistCreateView(CreateView):
@@ -75,14 +79,17 @@ class WishlistCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
-        return super().form_valid(form)
+        try:
+            with transaction.atomic():
+                return super().form_valid(form)
+        except IntegrityError:
+            form.add_error("title", "A wishlist with this title already exists.")
+            messages.error(self.request, "A wishlist with this title already exists.")
+            return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse("wishlist_list")
-        else:
-            ctx["cancel_url"] = reverse("wishlist_list")
+        ctx["cancel_url"] = reverse("wishlist_list")
         return ctx
 
 
@@ -93,15 +100,15 @@ class ItemCreateView(CreateView):
     template_name = "lists/wishlist_item_form.html"
 
     def get_wishlist(self):
+        if hasattr(self, "object") and isinstance(self.object, Item):
+            return self.object.wishlist
         return get_object_or_404(Wishlist, pk=self.kwargs["pk"], owner=self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["wishlist"] = self.get_wishlist()
-        if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse("wishlist_list")
-        else:
-            ctx["cancel_url"] = reverse("wishlist_list")
+        wishlist = self.get_wishlist()
+        ctx["wishlist"] = wishlist
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": wishlist.pk})
         return ctx
 
     def form_valid(self, form):
