@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Bad request{% endblock %}
+{% block content %}
+  <div class="text-center mt-24">
+    <h1 class="text-4xl font-bold mb-4">400</h1>
+    <p class="mb-6 text-gray-600">Bad Request.</p>
+    <a href="{% url 'home' %}" class="bg-blue-500 text-white px-4 py-2 rounded">Back to home page</a>
+  </div>
+{% endblock %}

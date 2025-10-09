@@ -1,4 +1,5 @@
 from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from rest_framework import permissions, viewsets
@@ -37,3 +38,7 @@ class RegisterView(CreateView):
     form_class = UserCreationForm
     template_name = "registration/register.html"
     success_url = reverse_lazy("login")
+
+
+def csrf_failure(request, reason=""):
+    return render(request, "403.html", status=403)
