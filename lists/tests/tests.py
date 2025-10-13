@@ -4,8 +4,8 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
-from .forms import ItemForm, WishlistForm
-from .models import Wishlist
+from lists.forms import ItemForm, WishlistForm
+from lists.models import Wishlist
 
 User = get_user_model()
 
@@ -40,6 +40,18 @@ class WishlistFormTests(TestCase):
             any("200" in str(e) or "characters" in str(e).lower() for e in form.errors["title"])
         )
 
+    def test_invalid_characters(self):
+        data = dict(self.base_data, title="Title €☻☺♦")
+        form = WishlistForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_SQL_injection(self):
+        data = dict(self.base_data, title="DROP TABLE tests")
+        form = WishlistForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
     def test_repetitive_title_rejected(self):
         data = dict(self.base_data, title="aaaaaaa")
         form = WishlistForm(data=data)
@@ -65,9 +77,7 @@ class WishlistFormTests(TestCase):
         self.assertContains(resp, "Description is too short", html=False, status_code=200)
 
     def test_unique_title_constraint_and_integrity_handling(self):
-        # создаём первую запись
         Wishlist.objects.create(owner=self.user, title="UniqueTitle", description="Desc")
-        # пытаемся создать через форму с тем же заголовком
         data = dict(self.base_data, title="UniqueTitle")
         form = WishlistForm(data=data)
         # форма может пройти валидацию (если уникальность проверяется в рамках владельца),
@@ -175,3 +185,35 @@ class WishlistItemFormTests(TestCase):
     def test_title_normalization_does_not_crash_on_one_char(self):
         data = dict(self.base_item, title="x")
         self.assertTrue(ItemForm(data=data).is_valid())
+
+
+class WishlistTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="u", password="x")
+        self.client.force_login(self.user)
+
+    def test_wishlist_search(self):
+        Wishlist.objects.create(owner=self.user, title="Alpha")
+        Wishlist.objects.create(owner=self.user, title="Beta")
+
+        # если есть именованный url:
+        # url = reverse("wishlist_list")
+        # resp = self.client.get(url, {"q": "alp"})
+        resp = self.client.get("/wishlists/", {"q": "alp"})
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Alpha")
+        self.assertNotContains(resp, "Beta")
+
+    def test_wishlist_sort(self):
+        Wishlist.objects.create(owner=self.user, title="Alpha")
+        Wishlist.objects.create(owner=self.user, title="Beta")
+
+        # url = reverse("wishlist_list")
+        # resp = self.client.get(url, {"sort": "title"})
+        resp = self.client.get("/wishlists/", {"sort": "title"})
+
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertLess(content.index("Alpha"), content.index("Beta"))
