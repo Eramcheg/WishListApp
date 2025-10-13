@@ -1,0 +1,18 @@
+{% load query %}
+{% if is_paginated %}
+<nav class="flex items-center justify-between mt-6">
+  <div>
+    {% if page_obj.has_previous %}
+      <a class="px-3 py-1 border rounded"
+         href="{% query_replace page=page_obj.previous_page_number %}">&laquo; Prev</a>
+    {% endif %}
+  </div>
+  <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+  <div>
+    {% if page_obj.has_next %}
+      <a class="px-3 py-1 border rounded"
+         href="{% query_replace page=page_obj.next_page_number %}">Next &raquo;</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}

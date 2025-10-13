@@ -1,8 +1,12 @@
 {% extends "base.html" %}
+{% load query %}
 {% block title %}My Wishlists{% endblock %}
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">My Wishlists</h2>
 <a href="{% url 'wishlist_create' %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
+
+{% include "partials/list_filters.html" %}
+
 <ul class="space-y-2">
     {% for wl in object_list %}
         <li class="bg-white p-3 shadow rounded">
@@ -13,4 +17,5 @@
         <p>No wishlists yet.</p>
     {% endfor %}
 </ul>
+{% include "partials/pagination.html" %}
 {% endblock %}

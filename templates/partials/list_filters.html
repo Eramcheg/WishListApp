@@ -1,0 +1,20 @@
+{# в контексте: q, sort #}
+<form method="get" class="mb-4 flex flex-wrap items-center gap-2">
+  <input
+    type="text" name="q" value="{{ q|default:'' }}"
+    placeholder="Search by title…"
+    class="border rounded px-3 py-2"
+  />
+
+  <select name="sort" class="border rounded px-3 py-2">
+    <option value="-created" {% if sort == "-created" %}selected{% endif %}>Newest first</option>
+    <option value="created"  {% if sort == "created" %}selected{% endif %}>Oldest first</option>
+    <option value="title"    {% if sort == "title" %}selected{% endif %}>Title A→Z</option>
+    <option value="-title"   {% if sort == "-title" %}selected{% endif %}>Title Z→A</option>
+  </select>
+
+  <button class="bg-blue-500 text-white px-4 py-2 rounded">Apply</button>
+
+  {# Кнопка сброса фильтров #}
+  <a href="." class="text-gray-600 underline ml-2">Reset</a>
+</form>

@@ -20,9 +20,30 @@ from .models import Item, Wishlist
 class WishlistListView(ListView):
     model = Wishlist
     template_name = "lists/wishlist_list.html"
+    paginate_by = 7
+
+    ORDERING_MAP = {
+        "created": "created_at",
+        "-created": "-created_at",
+        "title": "title",
+        "-title": "-title",
+    }
 
     def get_queryset(self):
-        return Wishlist.objects.filter(owner=self.request.user)
+        qs = Wishlist.objects.filter(owner=self.request.user)
+        q = self.request.GET.get("q")
+        sort = self.request.GET.get("sort", "-created")
+        order_by = self.ORDERING_MAP.get(sort, "-created_at")
+        if q:
+            qs = qs.filter(title__icontains=q)
+
+        return qs.order_by(order_by)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["q"] = self.request.GET.get("q", "")
+        ctx["sort"] = self.request.GET.get("sort", "-created")
+        return ctx
 
 
 @method_decorator(login_required, name="dispatch")
