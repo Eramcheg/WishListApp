@@ -1,9 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -50,21 +53,23 @@ class WishlistListView(ListView):
 class WishlistUpdateView(UpdateView):
     model = Wishlist
     form_class = WishlistForm
-    template_name = "lists/wishlist_form.html"  # тот же шаблон, что и для create
+    template_name = "lists/wishlist_form.html"
 
     def get_queryset(self):
         return Wishlist.objects.filter(owner=self.request.user)
 
     def get_success_url(self):
         messages.success(self.request, "Wishlist updated")
-        return reverse("wishlist_detail", kwargs={"pk": self.object.pk})
+        return reverse("wishlist_detail", kwargs={"slug": self.object.slug})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": self.object.wishlist_id})
+            ctx["cancel_url"] = reverse(
+                "wishlist_detail", kwargs={"slug": self.object.wishlist.slug}
+            )
         else:
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": self.object.pk})
+            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
         return ctx
 
 
@@ -82,13 +87,45 @@ class WishlistDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+class PublicWishlistView(DetailView):
+    model = Wishlist
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+    template_name = "lists/wishlist_public.html"
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.is_public:
+            raise Http404
+        return obj
+
+
+class ShareTokenWishlistView(DetailView):
+    model = Wishlist
+    template_name = "lists/wishlist_shared.html"  # read-only
+    slug_field = "share_token"
+    slug_url_kwarg = "token"
+
+    def get_object(self, queryset=None):
+        # доступ по токену НЕ зависит от is_public
+        obj = get_object_or_404(Wishlist, share_token=self.kwargs["token"])
+        return obj
+
+
 @method_decorator(login_required, name="dispatch")
 class WishlistDetailView(DetailView):
     model = Wishlist
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
     template_name = "lists/wishlist_detail.html"
 
-    def get_queryset(self):
-        return Wishlist.objects.filter(owner=self.request.user)
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if self.request.user != obj.owner:
+            from django.http import Http404
+
+            raise Http404
+        return obj
 
 
 @method_decorator(login_required, name="dispatch")
@@ -114,6 +151,20 @@ class WishlistCreateView(CreateView):
         return ctx
 
 
+class WishlistShareView(LoginRequiredMixin, View):
+    def post(self, request, slug):
+        wl = get_object_or_404(Wishlist, slug=slug, owner=request.user)
+        if "revoke" in request.POST:
+            wl.revoke_share_token()
+        else:
+            wl.ensure_share_token()
+        return redirect("wishlist_detail", slug=wl.slug)
+
+    def get(self, request, slug):
+        wl = get_object_or_404(Wishlist, slug=slug, owner=request.user)
+        return render(request, "lists/wishlist_shared.html", {"object": wl})
+
+
 @method_decorator(login_required, name="dispatch")
 class ItemCreateView(CreateView):
     model = Item
@@ -123,13 +174,13 @@ class ItemCreateView(CreateView):
     def get_wishlist(self):
         if hasattr(self, "object") and isinstance(self.object, Item):
             return self.object.wishlist
-        return get_object_or_404(Wishlist, pk=self.kwargs["pk"], owner=self.request.user)
+        return get_object_or_404(Wishlist, slug=self.kwargs["slug"], owner=self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         wishlist = self.get_wishlist()
         ctx["wishlist"] = wishlist
-        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": wishlist.pk})
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": wishlist.slug})
         return ctx
 
     def form_valid(self, form):
@@ -137,7 +188,7 @@ class ItemCreateView(CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("wishlist_detail", kwargs={"pk": self.kwargs["pk"]})
+        return reverse("wishlist_detail", kwargs={"slug": self.kwargs["slug"]})
 
 
 @method_decorator(login_required, name="dispatch")
@@ -151,14 +202,16 @@ class ItemUpdateView(UpdateView):
 
     def get_success_url(self):
         messages.success(self.request, "Item updated")
-        return reverse("wishlist_detail", kwargs={"pk": self.object.wishlist_id})
+        return reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": self.object.wishlist_id})
+            ctx["cancel_url"] = reverse(
+                "wishlist_detail", kwargs={"slug": self.object.wishlist.slug}
+            )
         else:
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"pk": self.object.pk})
+            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
         return ctx
 
 
@@ -172,4 +225,4 @@ class ItemDeleteView(DeleteView):
 
     def get_success_url(self):
         messages.success(self.request, "Item deleted")
-        return reverse("wishlist_detail", kwargs={"pk": self.object.wishlist_id})
+        return reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})

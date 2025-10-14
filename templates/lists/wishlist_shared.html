@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ object.title }}{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">{{ object.title }}</h2>
+<p class="mb-6 text-gray-600">{{ object.description }}</p>
+<h3 class="text-xl font-semibold mb-3">Items</h3>
+<ul class="space-y-2">
+    {% for item in object.items.all %}
+        <li class="bg-white p-3 shadow rounded">
+            {% if item.image_url %}
+                <img alt="{{ item.title }}" src="{{ item.image_url }}" class="w-16 h-16 mr-4">
+            {% endif %}
+            <span class="font-medium">{{ item.title }}</span>
+            {% if item.url %}
+                <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>
+            {% endif %}
+        </li>
+    {% empty %}
+        <p>No items yet.</p>
+    {% endfor %}
+</ul>
+{% endblock %}

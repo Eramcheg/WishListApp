@@ -10,7 +10,7 @@
 <ul class="space-y-2">
     {% for wl in object_list %}
         <li class="bg-white p-3 shadow rounded">
-            <a href="{% url 'wishlist_detail' wl.id %}" class="text-blue-600 font-medium">{{ wl.title }}</a>
+            <a href="{% url 'wishlist_detail' wl.slug %}" class="text-blue-600 font-medium">{{ wl.title }}</a>
             <p class="text-sm text-gray-500">{{ wl.description|default:"No description" }}</p>
         </li>
     {% empty %}
