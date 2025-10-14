@@ -6,6 +6,7 @@
     <title>{% block title %}Wishlist{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/x-icon" href="{% static "icons/favicon.ico" %}">
+    {% block extra_meta %}{% endblock %}
 </head>
 <body class="bg-gray-100 text-gray-800">
 <nav class="bg-white shadow mb-6 p-4 flex justify-between">

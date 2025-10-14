@@ -217,3 +217,77 @@ class WishlistTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         content = resp.content.decode()
         self.assertLess(content.index("Alpha"), content.index("Beta"))
+
+
+class WishlistViewsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # пользователи
+        cls.owner = User.objects.create_user(
+            username="owner", email="owner@example.com", password="pass12345"
+        )
+        cls.other = User.objects.create_user(
+            username="other", email="other@example.com", password="pass12345"
+        )
+
+        # вишлисты
+        cls.public_wishlist = Wishlist.objects.create(
+            owner=cls.owner, title="Public WL", description="desc", is_public=True
+        )
+        cls.private_wishlist = Wishlist.objects.create(
+            owner=cls.owner, title="Private WL", description="desc", is_public=False
+        )
+        cls.shared_wishlist = Wishlist.objects.create(
+            owner=cls.owner,
+            title="Shared WL",
+            description="desc",
+            is_public=False,
+            share_token="tok_1234567890",  # достаточно уникально для тестов
+        )
+
+        # чтобы быть уверенным, что слаги проставились в save()
+        cls.public_wishlist.refresh_from_db()
+        cls.private_wishlist.refresh_from_db()
+        cls.shared_wishlist.refresh_from_db()
+
+    def test_public_view_guest_ok(self):
+        """
+        Гость видит публичную страницу /p/<slug>/ (read-only),
+        и на ней нет управляющих кнопок владельца (например, 'Edit').
+        """
+        url = reverse("public_wl_detail", args=[self.public_wishlist.slug])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Edit")
+
+    def test_private_view_guest_404(self):
+        """
+        Гость не должен видеть приватный список по публичному роуту.
+        """
+        url = reverse("public_wl_detail", args=[self.private_wishlist.slug])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_owner_detail_has_controls(self):
+        """
+        Владелец на приватной 'владельческой' деталке видит элементы управления.
+        """
+        self.client.force_login(self.owner)
+        url = reverse("wishlist_detail", args=[self.public_wishlist.slug])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Edit")
+
+    def test_sharelink_works_and_revocation(self):
+        """
+        Доступ по /s/<token>/ работает, а после отзыва токена — 404.
+        """
+        url = reverse("wishlist_sharelink", args=[self.shared_wishlist.share_token])
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+        # отозвать токен
+        self.shared_wishlist.share_token = None
+        self.shared_wishlist.save(update_fields=["share_token"])
+
+        # запрашиваем тот же URL (по старому токену) — должен стать 404
+        self.assertEqual(self.client.get(url).status_code, 404)
