@@ -2,11 +2,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError, transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.http import require_GET
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -17,6 +18,7 @@ from django.views.generic import (
 
 from .forms import ItemForm, WishlistForm
 from .models import Item, Wishlist
+from .og import enrich_from_url
 
 
 @method_decorator(login_required, name="dispatch")
@@ -183,6 +185,18 @@ class ItemCreateView(CreateView):
         ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": wishlist.slug})
         return ctx
 
+    def post(self, request, *args, **kwargs):
+        if "enrich" in request.POST:
+            url = request.POST.get("url", "").strip()
+            data = enrich_from_url(url) if url else {}
+            post = request.POST.copy()
+            for k, v in data.items():
+                if not post.get(k):
+                    post[k] = v
+            form = self.form_class(post)
+            return self.render_to_response(self.get_context_data(form=form))
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         form.instance.wishlist = self.get_wishlist()
         return super().form_valid(form)
@@ -226,3 +240,13 @@ class ItemDeleteView(DeleteView):
     def get_success_url(self):
         messages.success(self.request, "Item deleted")
         return reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})
+
+
+@require_GET
+@login_required
+def og_preview(request):
+    url = request.GET.get("url", "")
+    if not url:
+        return JsonResponse({}, status=400)
+    data = enrich_from_url(url)
+    return JsonResponse(data or {})

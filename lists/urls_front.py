@@ -13,6 +13,7 @@ from .views_front import (
     WishlistListView,
     WishlistShareView,
     WishlistUpdateView,
+    og_preview,
 )
 
 urlpatterns = [
@@ -33,4 +34,5 @@ urlpatterns = [
     ),
     path("s/<str:token>/", ShareTokenWishlistView.as_view(), name="wishlist_sharelink"),
     path("<slug:slug>/share/", WishlistShareView.as_view(), name="wishlist_share"),
+    path("og/preview/", og_preview, name="og_preview"),
 ]

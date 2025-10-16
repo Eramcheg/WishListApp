@@ -7,7 +7,7 @@
     <a href="{% url 'wishlist_edit' object.slug %}" class="px-3 py-1 rounded bg-yellow-500 text-white">Edit</a>
     <a href="{% url 'wishlist_delete' object.slug %}" class="px-3 py-1 rounded bg-red-600 text-white">Delete</a>
     <a href="{% url 'item_create' object.slug %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
-    <a href="{% url 'public_wl_detail' object.slug %}" class="bg-blue-500 text-white px-4 py-1 rounded mb-3 inline-block">Share open link</a>
+    {% if object.is_public %}<a href="{% url 'public_wl_detail' object.slug %}" class="bg-blue-500 text-white px-4 py-1 rounded mb-3 inline-block">Share open link</a>{% endif %}
     {% if object.share_token %}
         <p class="mb-2">Anyone with this link can view your wishlist:</p>
         <div class="flex items-center gap-2">
