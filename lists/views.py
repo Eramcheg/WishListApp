@@ -1,3 +1,6 @@
+import csv
+import io
+
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import render
 from django.urls import reverse_lazy
@@ -7,7 +10,7 @@ from rest_framework import permissions, viewsets
 from .models import Item, Wishlist
 from .serializers import ItemSerializer, WishlistSerializer
 
-# Create your views here.
+MAX_ROWS = 1000
 
 
 class IsOwner(permissions.BasePermission):
@@ -42,3 +45,33 @@ class RegisterView(CreateView):
 
 def csrf_failure(request, reason=""):
     return render(request, "403.html", status=403)
+
+
+def _read_csv_bytes(fp: bytes):
+    """Will return (headers, rows) where rows = list[dict].
+    We try to guess encoding and separators."""
+    raw = fp
+    text = ""
+    for enc in ("utf-8-sig", "utf-8", "cp1251"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        text = raw.decode("utf-8", errors="replace")
+
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample)
+    except csv.Error:
+        dialect = csv.excel
+
+    reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+    headers = [h.strip() for h in (reader.fieldnames or [])]
+    rows = []
+    for i, row in enumerate(reader, start=1):
+        if i > MAX_ROWS:
+            break
+        rows.append({(k or "").strip(): (v or "").strip() for k, v in row.items()})
+    return headers, rows

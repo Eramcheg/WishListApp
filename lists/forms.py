@@ -3,7 +3,11 @@ import re
 from urllib.parse import urlparse
 
 from django import forms
-from django.core.validators import MaxLengthValidator, URLValidator
+from django.core.validators import (
+    FileExtensionValidator,
+    MaxLengthValidator,
+    URLValidator,
+)
 from django.utils.html import strip_tags
 
 from .models import Item, Wishlist
@@ -201,3 +205,57 @@ class ItemForm(forms.ModelForm):
         # if not cleaned.get("title") and not cleaned.get("note"):
         #     raise forms.ValidationError("Нужен хотя бы заголовок или заметка.")
         return cleaned
+
+
+class BulkAddForm(forms.Form):
+    urls_text = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 10, "placeholder": "https://..."}),
+        label="Links",
+        help_text="One url per line. Empty lines will be ignored.",
+    )
+
+    def clean_urls(self):
+        return self.cleaned_data.get("urls", [])
+
+    def clean(self):
+        cleaned = super().clean()
+        raw = cleaned.get("urls_text", "") or ""
+        lines = [ln.strip() for ln in raw.splitlines()]
+        lines = [ln for ln in lines if ln]
+
+        urls, errors, seen = [], [], set()
+        for i, ln in enumerate(lines, start=1):
+            candidate = ln.split()[0]
+            try:
+                p = urlparse(candidate)
+                if p.scheme not in ("http", "https") or not p.netloc:
+                    raise ValueError
+            except Exception:
+                errors.append((i, ln, "Incorrect URL"))
+                continue
+            if candidate in seen:
+                errors.append((i, ln, "Already exists"))
+                continue
+            seen.add(candidate)
+            urls.append((i, candidate))
+
+        cleaned["parsed_urls"] = urls
+        cleaned["parse_errors"] = errors
+        return cleaned
+
+
+class ImportCSVForm(forms.Form):
+    file = forms.FileField(
+        validators=[FileExtensionValidator(["csv"])],
+        label="CSV file",
+        help_text="Up to 2 MB. Delimiter will be found automatically.",
+    )
+
+
+class ImportMappingForm(forms.Form):
+    url_col = forms.ChoiceField(
+        label="URL column", error_messages={"invalid_choice": "Invalid URL column."}
+    )
+    title_col = forms.ChoiceField(label="Title column", required=False)
+    image_col = forms.ChoiceField(label="Image URL column", required=False)
+    note_col = forms.ChoiceField(label="Note column", required=False)

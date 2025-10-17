@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Map columns — {{ wishlist.title }}{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Columns match</h2>
+
+{{ form.non_field_errors }}
+<form method="post" class="space-y-3">
+  {% csrf_token %}
+
+  <div>URL: {{ form.url_col }}</div>
+  {% for error in form.url_col.errors %}
+    <div class="text-red-600 text-sm">{{ error }}</div>
+  {% endfor %}
+
+  <div>Title: {{ form.title_col }}</div>
+  {% for error in form.title_col.errors %}
+    <div class="text-red-600 text-sm">{{ error }}</div>
+  {% endfor %}
+
+  <div>Image URL: {{ form.image_col }}</div>
+  {% for error in form.image_col.errors %}
+    <div class="text-red-600 text-sm">{{ error }}</div>
+  {% endfor %}
+
+  <div>Note: {{ form.note_col }}</div>
+  {% for error in form.note_col.errors %}
+    <div class="text-red-600 text-sm">{{ error }}</div>
+  {% endfor %}
+
+  <button class="bg-green-600 text-white px-4 py-1 rounded">Import</button>
+</form>
+
+<h3 class="mt-6 font-medium">Preview (first 10 lines)</h3>
+<div class="overflow-x-auto mt-2">
+  <table class="min-w-full text-sm border">
+    <thead><tr>
+      {% for h in headers %}<th class="border px-2 py-1 text-left">{{ h }}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+      {% for row in preview_rows %}
+        <tr>{% for h in headers %}<td class="border px-2 py-1">{{ h }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

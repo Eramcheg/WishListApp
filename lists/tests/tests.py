@@ -1,13 +1,18 @@
 # tests.py
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
 from lists.forms import ItemForm, WishlistForm
-from lists.models import Wishlist
+from lists.models import Item, Wishlist
 
 User = get_user_model()
+
+
+def make_csv(content: str, name="data.csv"):
+    return SimpleUploadedFile(name, content.encode("utf-8"), content_type="text/csv")
 
 
 class WishlistFormTests(TestCase):
@@ -145,6 +150,36 @@ class WishlistItemFormTests(TestCase):
                 for e in form.errors["title"]
             )
         )
+
+    def test_empty_title_shows_error(self):
+        data = dict(self.base_item, title="   ")
+        form = ItemForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+        self.assertTrue(
+            any(
+                "required" in str(e).lower() or "required" in str(e).lower()
+                for e in form.errors["title"]
+            )
+        )
+
+    def test_SQL_injection(self):
+        data = dict(self.base_item, title="SELECT * FROM tests")
+        form = ItemForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_invalid_characters_shows_error(self):
+        data = dict(self.base_data, title="Title ☺")
+        form = ItemForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_control_characters_shows_error(self):
+        data = dict(self.base_data, title="Title \r \x01 new line")
+        form = ItemForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
 
     def test_title_max_len_boundary(self):
         data = dict(self.base_item, title="abcd" * 50)
@@ -291,3 +326,113 @@ class WishlistViewsTests(TestCase):
 
         # запрашиваем тот же URL (по старому токену) — должен стать 404
         self.assertEqual(self.client.get(url).status_code, 404)
+
+
+class BulkAddTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user("u", "u@e.com", "pass")
+        cls.wl = Wishlist.objects.create(owner=cls.user, title="WL", is_public=False)
+
+    def test_bulk_add_basic(self):
+        self.client.force_login(self.user)
+        url = reverse("items_bulk_add", args=[self.wl.slug])
+        payload = {
+            "urls_text": "\n".join(
+                [
+                    "https://ex.com/a",
+                    "https://ex.com/b",
+                    "",
+                    "not-a-url",
+                    "https://ex.com/a",
+                ]
+            )
+        }
+        resp = self.client.post(url, payload, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Item.objects.filter(wishlist=self.wl).count(), 2)
+        content = resp.content.decode()
+        self.assertIn("Created: 2", content)
+        self.assertIn("missed", content)
+        self.assertIn("Incorrect URL", content)
+        self.assertIn("Already exists", content)
+
+
+class ImportCSVTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user("u", "u@e.com", "pass12345")
+        cls.wl = Wishlist.objects.create(owner=cls.user, title="WL")
+
+    def test_upload_csv_ok_redirects_to_mapping(self):
+        self.client.force_login(self.user)
+        url = reverse("items_import", args=[self.wl.slug])
+        csv = make_csv("url,title\nhttps://ex.com/a,A\nhttps://ex.com/b,B\n")
+        resp = self.client.post(url, {"file": csv}, follow=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/import/", resp["Location"])
+
+    def test_upload_csv_too_big_rejected(self):
+        self.client.force_login(self.user)
+        url = reverse("items_import", args=[self.wl.slug])
+        big = SimpleUploadedFile(
+            "big.csv",
+            b"x" * (2 * 1024 * 1024 + 10),  # > 2 MB
+            content_type="text/csv",
+        )
+        resp = self.client.post(url, {"file": big})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "File is too large.")
+
+    def test_mapping_requires_existing_header(self):
+        self.client.force_login(self.user)
+        # Step 1
+        start = reverse("items_import", args=[self.wl.slug])
+        csv = make_csv("link,name\nhttps://ex.com/a,A\n")
+        resp = self.client.post(start, {"file": csv}, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        map_url = resp.request["PATH_INFO"]
+
+        # Step 2: use non-existing column
+        resp2 = self.client.post(map_url, {"url_col": "no_such_header"})
+        self.assertEqual(resp2.status_code, 200)
+        self.assertContains(resp2, "Invalid URL column")
+
+    def test_mapping_and_import_creates_items(self):
+        self.client.force_login(self.user)
+        start = reverse("items_import", args=[self.wl.slug])
+        csv = make_csv(
+            "url,title,image_url,note\nhttps://ex.com/a,A,,hello\nhttps://ex.com/b,B,,world\n"
+        )
+        resp = self.client.post(start, {"file": csv}, follow=True)
+        map_url = resp.request["PATH_INFO"]
+
+        resp2 = self.client.post(
+            map_url,
+            {
+                "url_col": "url",
+                "title_col": "title",
+                "image_col": "image_url",
+                "note_col": "note",
+            },
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(Item.objects.filter(wishlist=self.wl).count(), 2)
+        self.assertContains(resp2, "Created")
+
+    def test_invalid_url_row_is_skipped(self):
+        self.client.force_login(self.user)
+        start = reverse("items_import", args=[self.wl.slug])
+        csv = make_csv("url,title\nnot-a-url,A\nhttps://ex.com/ok,OK\n")
+        resp = self.client.post(start, {"file": csv}, follow=True)
+        map_url = resp.request["PATH_INFO"]
+
+        resp2 = self.client.post(map_url, {"url_col": "url", "title_col": "title"})
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(Item.objects.filter(wishlist=self.wl).count(), 1)
+        self.assertContains(resp2, "Enter a valid URL.")
+
+    def test_owner_only_access(self):
+        url = reverse("items_import", args=[self.wl.slug])
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, (302, 401))

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Import CSV — {{ wishlist.title }}{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Import CSV to “{{ wishlist.title }}”</h2>
+<form method="post" enctype="multipart/form-data" class="space-y-3">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+      <div class="bg-red-100 text-red-800 border border-red-300 p-3 rounded mb-3">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  <div>{{ form.file.label_tag }} {{ form.file }}</div>
+  {% for error in form.file.errors %}
+    <div class="text-red-600 text-sm">{{ error }}</div>
+  {% endfor %}
+
+  <button class="bg-blue-600 text-white px-4 py-1 rounded">Upload</button>
+</form>
+{% endblock %}

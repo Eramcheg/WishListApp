@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,13 +14,19 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
+    FormView,
     ListView,
     UpdateView,
 )
 
-from .forms import ItemForm, WishlistForm
+from WishListApp import settings
+
+from .forms import BulkAddForm, ImportCSVForm, ImportMappingForm, ItemForm, WishlistForm
 from .models import Item, Wishlist
 from .og import enrich_from_url
+from .views import _read_csv_bytes
+
+SESSION_KEY = "csv_import_jobs"
 
 
 @method_decorator(login_required, name="dispatch")
@@ -104,12 +112,11 @@ class PublicWishlistView(DetailView):
 
 class ShareTokenWishlistView(DetailView):
     model = Wishlist
-    template_name = "lists/wishlist_shared.html"  # read-only
+    template_name = "lists/wishlist_shared.html"
     slug_field = "share_token"
     slug_url_kwarg = "token"
 
     def get_object(self, queryset=None):
-        # доступ по токену НЕ зависит от is_public
         obj = get_object_or_404(Wishlist, share_token=self.kwargs["token"])
         return obj
 
@@ -240,6 +247,252 @@ class ItemDeleteView(DeleteView):
     def get_success_url(self):
         messages.success(self.request, "Item deleted")
         return reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})
+
+
+@method_decorator(login_required, name="dispatch")
+class BulkAddView(FormView):
+    template_name = "lists/bulk_add.html"
+    form_class = BulkAddForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["wishlist"] = self.wishlist
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.wishlist.slug})
+        return ctx
+
+    def form_valid(self, form):
+        urls = form.cleaned_data["parsed_urls"]
+        parse_errors = form.cleaned_data["parse_errors"]
+
+        created = 0
+        skipped = 0
+        results = []  # [(lineno, url, status, message)]
+        existing_urls = set(
+            Item.objects.filter(wishlist=self.wishlist).values_list("url", flat=True)
+        )
+        for lineno, url in urls:
+            if url in existing_urls:
+                skipped += 1
+                results.append((lineno, url, "skip", "Already exists"))
+                continue
+
+            data = {}
+            try:
+                data = enrich_from_url(url) or {}
+            except Exception:
+                data = {}
+            title = (data.get("title") or "").strip()
+            image_url = (data.get("image_url") or "").strip()
+
+            if title == "":
+                skipped += 1
+                results.append((lineno, url, "skip", "Title was not found."))
+
+            try:
+                with transaction.atomic():
+                    Item.objects.create(
+                        wishlist=self.wishlist,
+                        url=url,
+                        title=title,
+                        image_url=image_url,
+                        note="",
+                    )
+                existing_urls.add(url)
+                created += 1
+                results.append((lineno, url, "ok", "Created"))
+            except Exception as e:
+                skipped += 1
+                results.append((lineno, url, "error", f"Ошибка сохранения: {e}"))
+        for lineno, bad, msg in parse_errors:
+            results.append((lineno, bad, "error", msg))
+            skipped += 1
+
+        results.sort(key=lambda x: x[0])
+
+        return self.render_to_response(
+            self.get_context_data(
+                form=form,
+                created=created,
+                skipped=skipped,
+                results=results,
+                done=True,
+            )
+        )
+
+
+class ImportStartView(LoginRequiredMixin, FormView):
+    template_name = "lists/import/import_start.html"
+    form_class = ImportCSVForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner_id=request.user.id)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["wishlist"] = self.wishlist
+        return ctx
+
+    def form_valid(self, form):
+        f = form.cleaned_data["file"]
+        if f.size > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
+            form.add_error("file", "File is too large.")
+            return self.form_invalid(form)
+
+        headers, rows = _read_csv_bytes(f.read())
+        if not headers:
+            form.add_error("file", "CSV headers were not read.")
+            return self.form_invalid(form)
+        if not rows:
+            form.add_error("file", "File doesn't have urls.")
+            return self.form_invalid(form)
+
+        job_id = uuid.uuid4()
+        jobs = self.request.session.get(SESSION_KEY, {})
+        jobs[str(job_id)] = {
+            "headers": headers,
+            "rows": rows,
+        }
+        self.request.session[SESSION_KEY] = jobs
+        return redirect("wishlist_import_map", slug=self.wishlist.slug, job_id=job_id)
+
+
+class ImportMapView(LoginRequiredMixin, FormView):
+    template_name = "lists/import/import_map.html"
+    form_class = ImportMappingForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        self.job_id = str(kwargs["job_id"])
+        jobs = request.session.get(SESSION_KEY, {})
+        self.job = jobs.get(self.job_id)
+        if not self.job:
+            messages.error(
+                request, "Import job session was not found or it has expired." " Upload file again."
+            )
+            return redirect("wishlist_import_start", slug=self.wishlist.slug)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        headers = self.job["headers"]
+        choices = [("", "— don't use —")] + [(h, h) for h in headers]
+
+        form.fields["url_col"].choices = [(h, h) for h in headers]
+        form.fields["title_col"].choices = choices
+        form.fields["image_col"].choices = choices
+        form.fields["note_col"].choices = choices
+        lower = [h.lower() for h in headers]
+
+        def pick(*names):
+            for n in names:
+                if n in lower:
+                    return headers[lower.index(n)]
+            return ""
+
+        form.initial.update(
+            {
+                "url_col": pick("url", "link", "href"),
+                "title_col": pick("title", "name"),
+                "image_col": pick("image", "image_url", "img"),
+                "note_col": pick("note", "comment", "desc", "description"),
+            }
+        )
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        rows = self.job["rows"][:10]
+        ctx.update(
+            {
+                "wishlist": self.wishlist,
+                "headers": self.job["headers"],
+                "preview_rows": rows,
+                "cancel_url": reverse("wishlist_detail", kwargs={"slug": self.wishlist.slug}),
+            }
+        )
+        return ctx
+
+    def form_valid(self, form):
+        rows = self.job["rows"]
+        map_url = form.cleaned_data["url_col"]
+        map_title = form.cleaned_data.get("title_col") or ""
+        map_image = form.cleaned_data.get("image_col") or ""
+        map_note = form.cleaned_data.get("note_col") or ""
+
+        created = 0
+        skipped = 0
+        results = []
+
+        existing_urls = set(
+            Item.objects.filter(wishlist=self.wishlist).values_list("url", flat=True)
+        )
+
+        for idx, r in enumerate(rows, start=1):
+            url = (r.get(map_url) or "").strip()
+            if not url:
+                skipped += 1
+                results.append((idx, "—", "error", "Empty URL"))
+                continue
+            if url in existing_urls:
+                skipped += 1
+                results.append((idx, url, "skip", "Already exists"))
+                continue
+
+            title = (r.get(map_title) or "").strip() if map_title else ""
+            image_url = (r.get(map_image) or "").strip() if map_image else ""
+            note = (r.get(map_note) or "").strip() if map_note else ""
+
+            if not title:
+                title = url  # fallback
+
+            data = dict(
+                wishlist=self.wishlist, url=url, title=title, image_url=image_url, note=note
+            )
+            form = ItemForm(data=data)
+
+            if not form.is_valid():
+                skipped += 1
+                results.append((idx, url, "skip", form.errors))
+                continue
+
+            try:
+                with transaction.atomic():
+                    Item.objects.create(
+                        wishlist=self.wishlist,
+                        url=url,
+                        title=title,
+                        image_url=image_url,
+                        note=note,
+                    )
+                existing_urls.add(url)
+                created += 1
+                results.append((idx, url, "ok", "Created"))
+            except Exception as e:
+                skipped += 1
+                results.append((idx, url, "error", f"Error during saving: {e}"))
+
+        jobs = self.request.session.get(SESSION_KEY, {})
+        jobs.pop(self.job_id, None)
+        self.request.session[SESSION_KEY] = jobs
+
+        messages.success(self.request, f"Import finished. Created: {created}, Missed: {skipped}")
+        return render(
+            self.request,
+            "lists/import/import_result.html",
+            {
+                "wishlist": self.wishlist,
+                "created": created,
+                "skipped": skipped,
+                "results": results,
+            },
+        )
 
 
 @require_GET
