@@ -44,8 +44,8 @@
                 <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>
             {% endif %}
             <div class="float-right space-x-2">
-              <a href="{% url 'item_edit' object.slug item.id %}" class="text-yellow-600">Edit</a>
-              <a href="{% url 'item_delete' object.slug item.id %}" class="text-red-600">Delete</a>
+              <a href="{% url 'item_edit' wishlist_slug=object.slug item_slug=item.slug %}" class="text-yellow-600">Edit</a>
+              <a href="{% url 'item_delete' wishlist_slug=object.slug item_slug=item.slug %}" class="text-red-600">Delete</a>
             </div>
         </li>
     {% empty %}

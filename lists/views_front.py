@@ -3,6 +3,7 @@ import uuid
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -144,15 +145,25 @@ class WishlistCreateView(CreateView):
     template_name = "lists/wishlist_form.html"
     success_url = reverse_lazy("wishlist_list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.user.is_authenticated:
+            kwargs.setdefault("initial", {})
+            kwargs["initial"]["owner"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         form.instance.owner = self.request.user
         try:
             with transaction.atomic():
                 return super().form_valid(form)
         except IntegrityError:
-            form.add_error("title", "A wishlist with this title already exists.")
-            messages.error(self.request, "A wishlist with this title already exists.")
+            form.add_error("title", "You already have a wishlist with this title.")
             return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Please fix the errors below.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -180,33 +191,32 @@ class ItemCreateView(CreateView):
     form_class = ItemForm
     template_name = "lists/wishlist_item_form.html"
 
-    def get_wishlist(self):
-        if hasattr(self, "object") and isinstance(self.object, Item):
-            return self.object.wishlist
-        return get_object_or_404(Wishlist, slug=self.kwargs["slug"], owner=self.request.user)
+    def dispatch(self, request, *args, **kwargs):
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        wishlist = self.get_wishlist()
+        wishlist = self.wishlist
         ctx["wishlist"] = wishlist
         ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": wishlist.slug})
         return ctx
 
-    def post(self, request, *args, **kwargs):
-        if "enrich" in request.POST:
-            url = request.POST.get("url", "").strip()
-            data = enrich_from_url(url) if url else {}
-            post = request.POST.copy()
-            for k, v in data.items():
-                if not post.get(k):
-                    post[k] = v
-            form = self.form_class(post)
-            return self.render_to_response(self.get_context_data(form=form))
-        return super().post(request, *args, **kwargs)
+    # def form_valid(self, form):
+    #     form.instance.wishlist = self.wishlist
+    #     return super().form_valid(form)
 
     def form_valid(self, form):
-        form.instance.wishlist = self.get_wishlist()
-        return super().form_valid(form)
+        form.instance.wishlist = self.wishlist
+        try:
+            return super().form_valid(form)
+        except ValidationError as e:
+            if hasattr(e, "error_dict") and "image_url" in e.error_dict:
+                for err in e.error_dict["image_url"]:
+                    form.add_error("image_url", err)
+            else:
+                form.add_error(None, e)
+            return self.form_invalid(form)
 
     def get_success_url(self):
         return reverse("wishlist_detail", kwargs={"slug": self.kwargs["slug"]})
@@ -218,8 +228,14 @@ class ItemUpdateView(UpdateView):
     form_class = ItemForm
     template_name = "lists/wishlist_item_form.html"
 
+    slug_field = "slug"
+    slug_url_kwarg = "item_slug"
+
     def get_queryset(self):
-        return Item.objects.filter(wishlist__owner=self.request.user)
+        return Item.objects.select_related("wishlist", "wishlist__owner").filter(
+            wishlist__owner=self.request.user,
+            wishlist__slug=self.kwargs["wishlist_slug"],
+        )
 
     def get_success_url(self):
         messages.success(self.request, "Item updated")
@@ -227,13 +243,12 @@ class ItemUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse(
-                "wishlist_detail", kwargs={"slug": self.object.wishlist.slug}
-            )
-        else:
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})
         return ctx
+
+    def form_valid(self, form):
+        form.instance.wishlist_id = self.get_object().wishlist_id
+        return super().form_valid(form)
 
 
 @method_decorator(login_required, name="dispatch")
@@ -241,8 +256,14 @@ class ItemDeleteView(DeleteView):
     model = Item
     template_name = "lists/confirm_delete.html"
 
+    slug_field = "slug"
+    slug_url_kwarg = "item_slug"
+
     def get_queryset(self):
-        return Item.objects.filter(wishlist__owner=self.request.user)
+        return Item.objects.select_related("wishlist", "wishlist__owner").filter(
+            wishlist__owner=self.request.user,
+            wishlist__slug=self.kwargs["wishlist_slug"],
+        )
 
     def get_success_url(self):
         messages.success(self.request, "Item deleted")

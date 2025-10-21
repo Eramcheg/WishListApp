@@ -28,11 +28,16 @@ urlpatterns = [
     path("<slug:slug>/bulk-add/", BulkAddView.as_view(), name="items_bulk_add"),
     path("<slug:slug>/import/", ImportStartView.as_view(), name="items_import"),
     path("<slug:slug>/import/<uuid:job_id>/", ImportMapView.as_view(), name="wishlist_import_map"),
-    path("<slug:wishlist_slug>/item/<int:pk>/edit/", ItemUpdateView.as_view(), name="item_edit"),
     path(
-        "<slug:wishlist_slug>/item/<int:pk>/delete/", ItemDeleteView.as_view(), name="item_delete"
+        "<slug:wishlist_slug>/item/<slug:item_slug>/edit/",
+        ItemUpdateView.as_view(),
+        name="item_edit",
     ),
-    path("<slug:slug>/", WishlistDetailView.as_view(), name="wishlist_detail"),
+    path(
+        "<slug:wishlist_slug>/item/<slug:item_slug>/delete/",
+        ItemDeleteView.as_view(),
+        name="item_delete",
+    ),
     path(
         "p/<slug:slug>/",
         cache_page(60 * 10)(PublicWishlistView.as_view()),
@@ -41,4 +46,5 @@ urlpatterns = [
     path("s/<str:token>/", ShareTokenWishlistView.as_view(), name="wishlist_sharelink"),
     path("<slug:slug>/share/", WishlistShareView.as_view(), name="wishlist_share"),
     path("og/preview/", og_preview, name="og_preview"),
+    path("<slug:slug>/", WishlistDetailView.as_view(), name="wishlist_detail"),
 ]
