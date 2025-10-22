@@ -36,6 +36,12 @@ class WishlistFormTests(TestCase):
             )
         )
 
+    def test_control_characters_shows_error(self):
+        data = dict(self.base_data, title="Title \r \x01 new line")
+        form = WishlistForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
     def test_too_long_title(self):
         data = dict(self.base_data, title="x" * 201)
         form = WishlistForm(data=data)
@@ -155,7 +161,7 @@ class WishlistItemFormTests(TestCase):
         )
 
     def test_control_characters_shows_error(self):
-        data = dict(self.base_data, title="Title \r \x01 new line")
+        data = dict(self.base_item, title="Title \r \x01 new line")
         form = ItemForm(data=data)
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
@@ -256,7 +262,7 @@ class WishlistViewsTests(TestCase):
             title="Shared WL",
             description="desc",
             is_public=False,
-            share_token="tok_1234567890",  # достаточно уникально для тестов
+            share_token="tok_1234567890",
         )
 
         # чтобы быть уверенным, что слаги проставились в save()
@@ -274,6 +280,12 @@ class WishlistViewsTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, "Edit")
 
+    def test_public_view_other_user_ok(self):
+        self.client.force_login(self.other)
+        url = reverse("public_wl_detail", args=[self.public_wishlist.slug])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
     def test_private_view_guest_404(self):
         """
         Гость не должен видеть приватный список по публичному роуту.
@@ -281,6 +293,39 @@ class WishlistViewsTests(TestCase):
         url = reverse("public_wl_detail", args=[self.private_wishlist.slug])
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 404)
+
+    def test_sharelink_invalid_token_404(self):
+        url = reverse("wishlist_sharelink", args=["no_such_token"])
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_share_page_requires_owner(self):
+        url = reverse("wishlist_share", args=[self.private_wishlist.slug])
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, (302, 401))
+
+        self.client.force_login(self.other)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 404)
+
+        self.client.force_login(self.owner)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_share_generate_and_revoke_only_owner(self):
+        url = reverse("wishlist_share", args=[self.private_wishlist.slug])
+
+        self.client.force_login(self.other)
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 404)
+
+        self.client.force_login(self.owner)
+        resp = self.client.post(url, follow=True)
+        self.private_wishlist.refresh_from_db()
+        self.assertTrue(self.private_wishlist.share_token)
+
+        resp = self.client.post(url, {"revoke": "1"}, follow=True)
+        self.private_wishlist.refresh_from_db()
+        self.assertIsNone(self.private_wishlist.share_token)
 
     def test_owner_detail_has_controls(self):
         """
