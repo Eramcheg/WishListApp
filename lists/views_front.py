@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
@@ -23,6 +23,7 @@ from django.views.generic import (
 from WishListApp import settings
 
 from .forms import BulkAddForm, ImportCSVForm, ImportMappingForm, ItemForm, WishlistForm
+from .mixins import PolicyCheckMixin
 from .models import Item, Wishlist
 from .og import enrich_from_url
 from .views import _read_csv_bytes
@@ -75,12 +76,7 @@ class WishlistUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        if isinstance(self.object, Item):
-            ctx["cancel_url"] = reverse(
-                "wishlist_detail", kwargs={"slug": self.object.wishlist.slug}
-            )
-        else:
-            ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
         return ctx
 
 
@@ -93,22 +89,18 @@ class WishlistDeleteView(DeleteView):
     def get_queryset(self):
         return Wishlist.objects.filter(owner=self.request.user)
 
-    def delete(self, request, *args, **kwargs):
+    def form_valid(self, form):
         messages.success(self.request, "Wishlist deleted")
-        return super().delete(request, *args, **kwargs)
+        return super().form_valid(form)
 
 
-class PublicWishlistView(DetailView):
+class PublicWishlistView(PolicyCheckMixin, DetailView):
     model = Wishlist
     slug_field = "slug"
     slug_url_kwarg = "slug"
     template_name = "lists/wishlist_public.html"
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        if not obj.is_public:
-            raise Http404
-        return obj
+    policy_method_name = "can_view"
 
 
 class ShareTokenWishlistView(DetailView):
@@ -129,13 +121,8 @@ class WishlistDetailView(DetailView):
     slug_url_kwarg = "slug"
     template_name = "lists/wishlist_detail.html"
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        if self.request.user != obj.owner:
-            from django.http import Http404
-
-            raise Http404
-        return obj
+    def get_queryset(self):
+        return Wishlist.objects.filter(owner=self.request.user)
 
 
 @method_decorator(login_required, name="dispatch")
@@ -201,10 +188,6 @@ class ItemCreateView(CreateView):
         ctx["wishlist"] = wishlist
         ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": wishlist.slug})
         return ctx
-
-    # def form_valid(self, form):
-    #     form.instance.wishlist = self.wishlist
-    #     return super().form_valid(form)
 
     def form_valid(self, form):
         form.instance.wishlist = self.wishlist

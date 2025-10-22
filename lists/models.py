@@ -79,6 +79,16 @@ class Wishlist(models.Model):
             self.slug = _unique_slug_for_global(self.title, self.owner_id)
         super().save(*args, **kwargs)
 
+    def can_view(self, user) -> bool:
+        from . import policies
+
+        return policies.can_view(user, self).allowed
+
+    def can_edit(self, user) -> bool:
+        from . import policies
+
+        return policies.can_edit(user, self).allowed
+
 
 class Item(models.Model):
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")
