@@ -153,3 +153,62 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOG_DIR = "logs/"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname}: {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "ignore_static": {
+            "()": "shop.logging_filters.IgnoreStaticFilesFilter",
+        },
+    },
+    "handlers": {
+        "file": {
+            "level": "INFO",  # INFO or WARN can be selected for production
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "django.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 5,
+            "filters": ["ignore_static"],
+            "formatter": "verbose",
+            "delay": True,
+        },
+        "console": {
+            "level": "DEBUG",  # You can use DEBUG for development
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "filters": ["ignore_static"],
+        },
+    },
+    "loggers": {
+        # Generic logger for Django (includes standard behavior)
+        "django": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        # Logger for queries - only errors are logged
+        "django.request": {
+            "handlers": ["file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "lists": {
+            "handlers": ["file", "console"],
+            "level": "DEBUG",  # DEBUG can be enabled here for detailed tracking
+            "propagate": True,
+        },
+    },
+}
