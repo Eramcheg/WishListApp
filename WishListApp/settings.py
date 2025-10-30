@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "lists",
     "rest_framework",
     "drf_spectacular",
+    "django.contrib.sites",
+    "django.contrib.sitemaps",
 ]
 
 MIDDLEWARE = [
@@ -140,6 +142,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+SITE_ID = 1
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -169,46 +172,21 @@ LOGGING = {
             "style": "{",
         },
     },
-    "filters": {
-        "ignore_static": {
-            "()": "shop.logging_filters.IgnoreStaticFilesFilter",
-        },
-    },
     "handlers": {
-        "file": {
-            "level": "INFO",  # INFO or WARN can be selected for production
+        "wishlist_audit_file": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(LOG_DIR, "django.log"),
-            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "filename": os.path.join(BASE_DIR, "logs", "wishlist_audit.log"),
+            "encoding": "utf-8",
+            "maxBytes": 1024 * 1024 * 5,
             "backupCount": 5,
-            "filters": ["ignore_static"],
             "formatter": "verbose",
-            "delay": True,
-        },
-        "console": {
-            "level": "DEBUG",  # You can use DEBUG for development
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
-            "filters": ["ignore_static"],
         },
     },
     "loggers": {
-        # Generic logger for Django (includes standard behavior)
-        "django": {
-            "handlers": ["file", "console"],
+        "wishlist.audit": {
+            "handlers": ["wishlist_audit_file"],
             "level": "INFO",
-            "propagate": True,
-        },
-        # Logger for queries - only errors are logged
-        "django.request": {
-            "handlers": ["file"],
-            "level": "ERROR",
             "propagate": False,
-        },
-        "lists": {
-            "handlers": ["file", "console"],
-            "level": "DEBUG",  # DEBUG can be enabled here for detailed tracking
-            "propagate": True,
         },
     },
 }

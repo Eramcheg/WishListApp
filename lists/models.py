@@ -37,6 +37,9 @@ class Wishlist(models.Model):
     slug = models.SlugField(max_length=180, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    public_view_count = models.PositiveIntegerField(default=0)
+    last_viewed_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["owner", "title"], name="unique_owner_title")
@@ -129,3 +132,23 @@ class Item(models.Model):
             self.full_clean()
 
         super().save(*args, **kwargs)
+
+
+class WishlistAccess(models.Model):
+    VIEW = "view"
+    EDIT = "edit"
+    ROLE_CHOICES = [(VIEW, "view"), (EDIT, "edit")]
+
+    wishlist = models.ForeignKey(
+        "lists.Wishlist", on_delete=models.CASCADE, related_name="accesses"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishlist_accesses"
+    )
+    role = models.CharField(max_length=8, choices=ROLE_CHOICES, default=VIEW)
+
+    class Meta:
+        unique_together = [("wishlist", "user")]
+
+    def __str__(self):
+        return f"{self.user.username} → {self.wishlist.title} ({self.role})"

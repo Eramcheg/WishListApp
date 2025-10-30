@@ -12,6 +12,7 @@
         <li class="bg-white p-3 shadow rounded">
             <a href="{% url 'wishlist_detail' wl.slug %}" class="text-blue-600 font-medium">{{ wl.title }}</a>
             <p class="text-sm text-gray-500">{{ wl.description|default:"No description" }}</p>
+            <p class="text-sm align-right text-gray-500"> Views: {{ wl.public_view_count }} </p>
         </li>
     {% empty %}
         <p>No wishlists yet.</p>

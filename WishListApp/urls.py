@@ -16,16 +16,32 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
+from django.http import HttpResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
+from lists.sitemaps import PublicWishlistSitemap
 from lists.views import ItemViewSet, WishlistViewSet
 
 router = DefaultRouter()
 router.register(r"wishlists", WishlistViewSet, basename="wishlist")
 router.register(r"items", ItemViewSet, basename="item")
+
+sitemaps = {"wishlists": PublicWishlistSitemap}
+
+
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /wishlists/",
+        "Allow: /wishlists/p/",
+        "Sitemap: http://127.0.0.1:8000/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
 
 
 urlpatterns = [
@@ -37,4 +53,8 @@ urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("accounts/", include("lists.accounts.urls")),
+    path("robots.txt", robots_txt),
+    path(
+        "sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"
+    ),
 ]

@@ -1,6 +1,8 @@
 from django.http import Http404
 from django.views.generic.detail import SingleObjectMixin
 
+from .audit import log_event
+
 
 class PolicyCheckMixin(SingleObjectMixin):
     policy_method_name = None
@@ -8,12 +10,24 @@ class PolicyCheckMixin(SingleObjectMixin):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
 
-        if self.policy_method_name == "can_view":
-            if not obj.can_view(self.request.user):
-                raise Http404("Access denied based on viewing policy.")
+        method_name = self.policy_method_name
+        if not method_name:
+            return obj
 
-        elif self.policy_method_name == "can_edit":
-            if not obj.can_edit(self.request.user):
-                raise Http404("Access denied based on editing policy.")
+        checker = getattr(obj, method_name, None)
+        if checker is None:
+            return obj
 
+        result = checker(self.request.user)
+        allowed = getattr(result, "allowed", result)
+
+        if not bool(allowed):
+            reason = getattr(result, "reason", "denied")
+            try:
+                log_event(
+                    "access.denied", self.request.user, obj, policy=method_name, reason=reason
+                )
+            finally:
+                pass
+            raise Http404("Access denied.")
         return obj

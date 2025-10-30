@@ -1,5 +1,6 @@
 # tests.py
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -143,7 +144,7 @@ class WishlistItemFormTests(TestCase):
         )
 
     def test_wrong_image_url_shows_error(self):
-        data = dict(self.base_item, image_url="https://example.com/kfopwecmlkmewf?ferkpg")
+        data = dict(self.base_item, image_url="http://example.com/kfopwecmlkmewf?ferkpg")
         form = ItemForm(data=data)
         self.assertFalse(form.is_valid())
         self.assertIn("image_url", form.errors)
@@ -461,3 +462,33 @@ class ImportCSVTests(TestCase):
         url = reverse("items_import", args=[self.wl.slug])
         resp = self.client.get(url)
         self.assertIn(resp.status_code, (302, 401))
+
+
+class PublicViewCountTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user("o", "o@e.com", "p")
+        cls.other = User.objects.create_user("u", "u@e.com", "p")
+        cls.wl = Wishlist.objects.create(owner=cls.owner, title="pub", is_public=True)
+
+    def test_view_count_increments_for_guest(self):
+        cache.clear()
+        url = reverse("public_wl_detail", args=[self.wl.slug])
+        self.client.get(url)
+        self.wl.refresh_from_db()
+        self.assertEqual(self.wl.public_view_count, 1)
+
+    def test_view_count_not_increment_for_owner(self):
+        url = reverse("public_wl_detail", args=[self.wl.slug])
+        self.client.force_login(self.owner)
+        self.client.get(url)
+        self.wl.refresh_from_db()
+        self.assertEqual(self.wl.public_view_count, 0)
+
+    def test_view_count_dedup_within_hour(self):
+        url = reverse("public_wl_detail", args=[self.wl.slug])
+        self.client.force_login(self.other)
+        self.client.get(url)
+        self.client.get(url)
+        self.wl.refresh_from_db()
+        self.assertEqual(self.wl.public_view_count, 1)

@@ -3,11 +3,14 @@ import uuid
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.http import require_GET
@@ -22,6 +25,7 @@ from django.views.generic import (
 
 from WishListApp import settings
 
+from .audit import log_event, mask_token
 from .forms import BulkAddForm, ImportCSVForm, ImportMappingForm, ItemForm, WishlistForm
 from .mixins import PolicyCheckMixin
 from .models import Item, Wishlist
@@ -79,6 +83,12 @@ class WishlistUpdateView(UpdateView):
         ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.object.slug})
         return ctx
 
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj._last_actor = self.request.user
+        obj.save()
+        return super().form_valid(form)
+
 
 @method_decorator(login_required, name="dispatch")
 class WishlistDeleteView(DeleteView):
@@ -101,6 +111,34 @@ class PublicWishlistView(PolicyCheckMixin, DetailView):
     template_name = "lists/wishlist_public.html"
 
     policy_method_name = "can_view"
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.prefetch_related("accesses")
+
+    def get(self, request, *args, **kwargs):
+        resp = super().get(request, *args, **kwargs)
+        wl = self.object
+
+        if request.user.is_authenticated and request.user.id == wl.owner_id:
+            return resp
+
+        if not request.user.is_authenticated:
+            if not request.session.session_key:
+                request.session.save()
+                request.session.modified = True
+            viewer_id = f"sess:{request.session.session_key}"
+        else:
+            viewer_id = f"user:{request.user.id}"
+
+        cache_key = f"wl:viewed:{wl.pk}:{viewer_id}"
+        if not cache.get(cache_key):
+            Wishlist.objects.filter(pk=wl.pk).update(
+                public_view_count=F("public_view_count") + 1, last_viewed_at=timezone.now()
+            )
+            cache.set(cache_key, 1, 3600)
+
+        return resp
 
 
 class ShareTokenWishlistView(DetailView):
@@ -143,6 +181,9 @@ class WishlistCreateView(CreateView):
         form.instance.owner = self.request.user
         try:
             with transaction.atomic():
+                obj = form.save(commit=False)
+                obj._last_actor = self.request.user
+                obj.save()
                 return super().form_valid(form)
         except IntegrityError:
             form.add_error("title", "You already have a wishlist with this title.")
@@ -162,9 +203,15 @@ class WishlistShareView(LoginRequiredMixin, View):
     def post(self, request, slug):
         wl = get_object_or_404(Wishlist, slug=slug, owner=request.user)
         if "revoke" in request.POST:
+            old = wl.share_token
             wl.revoke_share_token()
+            log_event("share.revoke", request.user, wl, old_token=mask_token(old))
         else:
-            wl.ensure_share_token()
+            before = bool(wl.share_token)
+            token = wl.ensure_share_token()
+            log_event(
+                "share.generate", request.user, wl, had_before=before, token=mask_token(token)
+            )
         return redirect("wishlist_detail", slug=wl.slug)
 
     def get(self, request, slug):
@@ -192,6 +239,9 @@ class ItemCreateView(CreateView):
     def form_valid(self, form):
         form.instance.wishlist = self.wishlist
         try:
+            obj = form.save(commit=False)
+            obj._last_actor = self.request.user
+            obj.save()
             return super().form_valid(form)
         except ValidationError as e:
             if hasattr(e, "error_dict") and "image_url" in e.error_dict:
@@ -231,6 +281,9 @@ class ItemUpdateView(UpdateView):
 
     def form_valid(self, form):
         form.instance.wishlist_id = self.get_object().wishlist_id
+        obj = form.save(commit=False)
+        obj._last_actor = self.request.user
+        obj.save()
         return super().form_valid(form)
 
 
@@ -316,7 +369,14 @@ class BulkAddView(FormView):
             skipped += 1
 
         results.sort(key=lambda x: x[0])
-
+        log_event(
+            "import.bulk",
+            self.request.user,
+            self.wishlist,
+            created=created,
+            skipped=skipped,
+            lines=len(urls),
+        )
         return self.render_to_response(
             self.get_context_data(
                 form=form,
@@ -487,6 +547,14 @@ class ImportMapView(LoginRequiredMixin, FormView):
         self.request.session[SESSION_KEY] = jobs
 
         messages.success(self.request, f"Import finished. Created: {created}, Missed: {skipped}")
+        log_event(
+            "import.csv",
+            self.request.user,
+            self.wishlist,
+            created=created,
+            skipped=skipped,
+            rows=len(rows),
+        )
         return render(
             self.request,
             "lists/import/import_result.html",
