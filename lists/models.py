@@ -3,7 +3,9 @@ import secrets
 
 from django.conf import settings
 from django.db import models
-from django.utils.text import slugify
+
+# from django.utils.text import slugify
+from slugify import slugify
 
 from .validators import https_only, validate_image_url
 
@@ -132,6 +134,12 @@ class Item(models.Model):
             self.full_clean()
 
         super().save(*args, **kwargs)
+
+    def can_view(self, user) -> bool:
+        return self.wishlist.can_view(user)
+
+    def can_edit(self, user) -> bool:
+        return self.wishlist.can_edit(user)
 
 
 class WishlistAccess(models.Model):

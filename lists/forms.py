@@ -3,10 +3,13 @@ import re
 from urllib.parse import urlparse
 
 from django import forms
+from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.utils.html import strip_tags
 
-from .models import Item, Wishlist
+from .models import Item, Wishlist, WishlistAccess
+
+User = get_user_model()
 
 DESC_MIN = 10
 DESC_MAX = 4000
@@ -191,3 +194,21 @@ class ImportMappingForm(forms.Form):
     title_col = forms.ChoiceField(label="Title column", required=False)
     image_col = forms.ChoiceField(label="Image URL column", required=False)
     note_col = forms.ChoiceField(label="Note column", required=False)
+
+
+class ShareAccessForm(forms.Form):
+    username_or_email = forms.CharField(label="User", max_length=150)
+    role = forms.ChoiceField(choices=WishlistAccess.ROLE_CHOICES, initial=WishlistAccess.VIEW)
+
+    def clean_username_or_email(self):
+        v = self.cleaned_data["username_or_email"].strip()
+        if not v:
+            raise forms.ValidationError("Specify user's username.")
+        return v
+
+    def find_user(self):
+        v = self.cleaned_data.get("username_or_email", "")
+        user = User.objects.filter(username=v).first()
+        if not user:
+            user = User.objects.filter(email=v).first()
+        return user

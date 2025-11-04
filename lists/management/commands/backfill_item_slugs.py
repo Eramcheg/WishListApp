@@ -1,7 +1,9 @@
 from collections import defaultdict
 
 from django.core.management.base import BaseCommand
-from django.utils.text import slugify
+
+# from django.utils.text import slugify
+from slugify import slugify
 
 from lists.models import Item
 

@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -26,9 +26,16 @@ from django.views.generic import (
 from WishListApp import settings
 
 from .audit import log_event, mask_token
-from .forms import BulkAddForm, ImportCSVForm, ImportMappingForm, ItemForm, WishlistForm
+from .forms import (
+    BulkAddForm,
+    ImportCSVForm,
+    ImportMappingForm,
+    ItemForm,
+    ShareAccessForm,
+    WishlistForm,
+)
 from .mixins import PolicyCheckMixin
-from .models import Item, Wishlist
+from .models import Item, Wishlist, WishlistAccess
 from .og import enrich_from_url
 from .views import _read_csv_bytes
 
@@ -65,11 +72,28 @@ class WishlistListView(ListView):
         return ctx
 
 
+class SharedWithMeListView(LoginRequiredMixin, ListView):
+    template_name = "lists/wishlists_shared_with_user.html"
+    context_object_name = "wishlists"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return (
+            Wishlist.objects.filter(accesses__user=self.request.user)
+            .select_related("owner")
+            .order_by("-last_viewed_at", "title")
+            .distinct()
+        )
+
+
 @method_decorator(login_required, name="dispatch")
-class WishlistUpdateView(UpdateView):
+class WishlistUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
     model = Wishlist
     form_class = WishlistForm
     template_name = "lists/wishlist_form.html"
+
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
 
     def get_queryset(self):
         return Wishlist.objects.filter(owner=self.request.user)
@@ -153,14 +177,13 @@ class ShareTokenWishlistView(DetailView):
 
 
 @method_decorator(login_required, name="dispatch")
-class WishlistDetailView(DetailView):
+class WishlistDetailView(LoginRequiredMixin, PolicyCheckMixin, DetailView):
     model = Wishlist
     slug_field = "slug"
     slug_url_kwarg = "slug"
     template_name = "lists/wishlist_detail.html"
 
-    def get_queryset(self):
-        return Wishlist.objects.filter(owner=self.request.user)
+    policy_method_name = "can_edit"
 
 
 @method_decorator(login_required, name="dispatch")
@@ -220,13 +243,23 @@ class WishlistShareView(LoginRequiredMixin, View):
 
 
 @method_decorator(login_required, name="dispatch")
-class ItemCreateView(CreateView):
+class ItemCreateView(LoginRequiredMixin, PolicyCheckMixin, CreateView):
     model = Item
     form_class = ItemForm
     template_name = "lists/wishlist_item_form.html"
 
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+    policy_method_name = "can_edit"
+
     def dispatch(self, request, *args, **kwargs):
-        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"])
+
+        res = self.wishlist.can_edit(request.user)  # bool или AccessResult
+        allowed = getattr(res, "allowed", res)
+        if not allowed:
+            raise Http404
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -256,19 +289,13 @@ class ItemCreateView(CreateView):
 
 
 @method_decorator(login_required, name="dispatch")
-class ItemUpdateView(UpdateView):
+class ItemUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
     model = Item
     form_class = ItemForm
     template_name = "lists/wishlist_item_form.html"
-
     slug_field = "slug"
     slug_url_kwarg = "item_slug"
-
-    def get_queryset(self):
-        return Item.objects.select_related("wishlist", "wishlist__owner").filter(
-            wishlist__owner=self.request.user,
-            wishlist__slug=self.kwargs["wishlist_slug"],
-        )
+    policy_method_name = "can_edit"
 
     def get_success_url(self):
         messages.success(self.request, "Item updated")
@@ -288,18 +315,12 @@ class ItemUpdateView(UpdateView):
 
 
 @method_decorator(login_required, name="dispatch")
-class ItemDeleteView(DeleteView):
+class ItemDeleteView(LoginRequiredMixin, PolicyCheckMixin, DeleteView):
     model = Item
     template_name = "lists/confirm_delete.html"
-
     slug_field = "slug"
     slug_url_kwarg = "item_slug"
-
-    def get_queryset(self):
-        return Item.objects.select_related("wishlist", "wishlist__owner").filter(
-            wishlist__owner=self.request.user,
-            wishlist__slug=self.kwargs["wishlist_slug"],
-        )
+    policy_method_name = "can_edit"
 
     def get_success_url(self):
         messages.success(self.request, "Item deleted")
@@ -307,12 +328,20 @@ class ItemDeleteView(DeleteView):
 
 
 @method_decorator(login_required, name="dispatch")
-class BulkAddView(FormView):
+class BulkAddView(LoginRequiredMixin, FormView):
     template_name = "lists/bulk_add.html"
     form_class = BulkAddForm
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
 
     def dispatch(self, request, *args, **kwargs):
-        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"])
+
+        res = self.wishlist.can_edit(request.user)  # bool или AccessResult
+        allowed = getattr(res, "allowed", res)
+        if not allowed:
+            raise Http404
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -392,15 +421,24 @@ class ImportStartView(LoginRequiredMixin, FormView):
     template_name = "lists/import/import_start.html"
     form_class = ImportCSVForm
 
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner_id=request.user.id)
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"])
+
+        res = self.wishlist.can_edit(request.user)  # bool или AccessResult
+        allowed = getattr(res, "allowed", res)
+        if not allowed:
+            raise Http404
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["wishlist"] = self.wishlist
+        ctx["cancel_url"] = reverse("wishlist_detail", kwargs={"slug": self.wishlist.slug})
         return ctx
 
     def form_valid(self, form):
@@ -431,8 +469,16 @@ class ImportMapView(LoginRequiredMixin, FormView):
     template_name = "lists/import/import_map.html"
     form_class = ImportMappingForm
 
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+
     def dispatch(self, request, *args, **kwargs):
-        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"], owner=request.user)
+        self.wishlist = get_object_or_404(Wishlist, slug=kwargs["slug"])
+
+        res = self.wishlist.can_edit(request.user)  # bool или AccessResult
+        allowed = getattr(res, "allowed", res)
+        if not allowed:
+            raise Http404
         self.job_id = str(kwargs["job_id"])
         jobs = request.session.get(SESSION_KEY, {})
         self.job = jobs.get(self.job_id)
@@ -563,6 +609,7 @@ class ImportMapView(LoginRequiredMixin, FormView):
                 "created": created,
                 "skipped": skipped,
                 "results": results,
+                "cancel_url": reverse("wishlist_detail", kwargs={"slug": self.wishlist.slug}),
             },
         )
 
@@ -575,3 +622,54 @@ def og_preview(request):
         return JsonResponse({}, status=400)
     data = enrich_from_url(url)
     return JsonResponse(data or {})
+
+
+class WishlistAccessManageView(LoginRequiredMixin, View):
+    template_name = "lists/wishlist_access.html"
+
+    def get_wishlist(self, request, slug):
+        return get_object_or_404(Wishlist, slug=slug, owner=request.user)
+
+    def get(self, request, slug):
+        wl = self.get_wishlist(request, slug)
+        form = ShareAccessForm()
+        accesses = wl.accesses.select_related("user").all().order_by("user__username")
+        return render(
+            request, self.template_name, {"object": wl, "form": form, "accesses": accesses}
+        )
+
+    def post(self, request, slug):
+        wl = self.get_wishlist(request, slug)
+
+        if "revoke_user_id" in request.POST:
+            uid = request.POST.get("revoke_user_id")
+            WishlistAccess.objects.filter(wishlist=wl, user_id=uid).delete()
+            messages.success(request, "Access has been revoked.")
+            log_event("access.revoke", request.user, wl, target_user_id=uid)
+            return redirect("wishlist_access", slug=wl.slug)
+
+        form = ShareAccessForm(request.POST)
+        if not form.is_valid():
+            accesses = wl.accesses.select_related("user").all()
+            return render(
+                request, self.template_name, {"object": wl, "form": form, "accesses": accesses}
+            )
+
+        target = form.find_user()
+        if not target:
+            messages.error(request, "Access could not be granted.")
+            return redirect("wishlist_access", slug=wl.slug)
+
+        if target.id == wl.owner_id:
+            messages.info(request, "The owner already has full access.")
+            return redirect("wishlist_access", slug=wl.slug)
+
+        role = form.cleaned_data["role"]
+        obj, created = WishlistAccess.objects.update_or_create(
+            wishlist=wl, user=target, defaults={"role": role}
+        )
+        messages.success(request, f"Access for {target.username} = {role}.")
+        log_event(
+            "access.grant", request.user, wl, target_user_id=target.id, role=role, created=created
+        )
+        return redirect("wishlist_access", slug=wl.slug)

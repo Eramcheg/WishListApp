@@ -4,7 +4,7 @@ from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 
-from lists.models import Wishlist
+from lists.models import Item, Wishlist, WishlistAccess
 
 User = get_user_model()
 
@@ -46,10 +46,10 @@ class WishlistUpdateViewTests(TestCase):
         # cancel_url present and points to detail
         self.assertEqual(resp.context["cancel_url"], self.detail_url)
 
-    def test_other_user_gets_404(self):
-        self.client.login(username="other", password="pass12345")
-        resp = self.client.get(self.edit_url)
-        self.assertEqual(resp.status_code, 404)
+        def test_other_user_gets_404(self):
+            self.client.login(username="other", password="pass12345")
+            resp = self.client.get(self.edit_url)
+            self.assertEqual(resp.status_code, 404)
 
     def test_update_success_post(self):
         self.client.login(username="owner", password="pass12345")
@@ -85,6 +85,9 @@ class WishlistCreateViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="u1", email="u1@example.com", password="pass12345"
+        )
+        self.other = User.objects.create_user(
+            username="other", email="x@example.com", password="pass12345"
         )
         self.url = reverse("wishlist_create")
         self.list_url = reverse("wishlist_list")
@@ -177,6 +180,11 @@ class WishlistDeleteViewTests(TestCase):
         self.assertIn(resp.status_code, (302, 301))
         self.assertIn("/login", resp["Location"])  # adjust if LOGIN_URL differs
 
+    def test_other_user_gets_404(self):
+        self.client.login(username="other", password="pass12345")
+        resp = self.client.get(self.url)
+        self.assertEqual(resp.status_code, 404)
+
     def test_owner_get_confirm_page(self):
         self.client.login(username="owner", password="pass12345")
         resp = self.client.get(self.url)
@@ -212,3 +220,216 @@ class WishlistDeleteViewTests(TestCase):
         self.assertEqual(resp.status_code, 404)
         # still exists
         self.assertTrue(Wishlist.objects.filter(pk=self.wl.pk).exists())
+
+
+class WishlistAccessTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user("o", "o@e.com", "p")
+        self.alice = User.objects.create_user("a", "a@e.com", "p")
+        self.viewer = User.objects.create_user("v", "v@e.com", "p")
+
+        self.visitor = User.objects.create_user("vi", "vi@e.com", "p")
+
+        self.wl = Wishlist.objects.create(owner=self.owner, title="Priv", is_public=False)
+
+    def test_owner_can_grant_view(self):
+        self.client.force_login(self.owner)
+        self.assertEqual(
+            WishlistAccess.objects.filter(wishlist=self.wl, user=self.alice, role="view").count(), 1
+        )
+
+    def test_shared_can_view_public_page(self):
+        WishlistAccess.objects.create(wishlist=self.wl, user=self.alice, role="view")
+        url = reverse("public_wl_detail", args=[self.wl.slug])
+        self.client.force_login(self.alice)
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_editor_can_create_item(self):
+        wl = Wishlist.objects.create(owner=self.owner, title="X")
+        WishlistAccess.objects.create(wishlist=wl, user=self.alice, role="edit")
+
+        self.client.force_login(self.alice)
+        url = reverse("item_create", args=[wl.slug])
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/a",
+                "title": "A",
+                "image_url": "",
+                "note": "",
+            },
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert Item.objects.filter(wishlist=wl, title="A").exists()
+
+    def test_viewer_cant_create_item(self):
+        wl = Wishlist.objects.create(owner=self.owner, title="X")
+        WishlistAccess.objects.create(wishlist=wl, user=self.viewer, role="view")
+
+        # Viewer
+        self.client.force_login(self.viewer)
+        url = reverse("item_create", args=[wl.slug])
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/a",
+                "title": "A",
+                "image_url": "",
+                "note": "",
+            },
+        )
+        assert resp.status_code == 404
+        assert not Item.objects.filter(wishlist=wl, title="A").exists()
+
+        # Visitor
+        self.client.force_login(self.visitor)
+        url = reverse("item_create", args=[wl.slug])
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/a",
+                "title": "A",
+                "image_url": "",
+                "note": "",
+            },
+        )
+        assert resp.status_code == 404
+        assert not Item.objects.filter(wishlist=wl, title="A").exists()
+
+
+class ItemAccessTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user("o", "o@e.com", "p")
+        self.editor = User.objects.create_user("ed", "ed@e.com", "p")
+        self.viewer = User.objects.create_user("vw", "vw@e.com", "p")
+        self.visitor = User.objects.create_user("vi", "vi@e.com", "p")
+
+        self.wl = Wishlist.objects.create(owner=self.owner, title="Priv", is_public=False)
+        # Make an item with a stable slug for URL reversing; adjust if your factory differs
+        self.item = Item.objects.create(
+            wishlist=self.wl,
+            title="Old title",
+            url="https://ex.com/old",
+            slug="old-item",  # ensure you actually have a slug field
+        )
+
+        # grant roles
+        WishlistAccess.objects.create(wishlist=self.wl, user=self.editor, role="edit")
+        WishlistAccess.objects.create(wishlist=self.wl, user=self.viewer, role="view")
+
+    # ---------- UPDATE ----------
+    def test_owner_can_update_item(self):
+        self.client.force_login(self.owner)
+        url = reverse(
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        # If your URL uses pk: kwargs={"wishlist_slug": self.wl.slug, "pk": self.item.pk}
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/new",
+                "title": "New title",
+                "image_url": "",
+                "note": "",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.title, "New title")
+        self.assertEqual(self.item.url, "https://ex.com/new")
+
+    def test_editor_can_update_item(self):
+        self.client.force_login(self.editor)
+        url = reverse(
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/editor",
+                "title": "Edited by editor",
+                "image_url": "",
+                "note": "",
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.title, "Edited by editor")
+        self.assertEqual(self.item.url, "https://ex.com/editor")
+
+    def test_viewer_cannot_update_item(self):
+        self.client.force_login(self.viewer)
+        url = reverse(
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/blocked",
+                "title": "Should not change",
+                "image_url": "",
+                "note": "",
+            },
+        )  # no follow=True to see true 404
+        self.assertEqual(resp.status_code, 404)
+        self.item.refresh_from_db()
+        self.assertNotEqual(self.item.title, "Should not change")
+
+    def test_visitor_cannot_update_item(self):
+        self.client.force_login(self.visitor)
+        url = reverse(
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/nope",
+                "title": "Nope",
+                "image_url": "",
+                "note": "",
+            },
+        )
+        self.assertEqual(resp.status_code, 404)
+        self.item.refresh_from_db()
+        self.assertNotEqual(self.item.title, "Nope")
+
+    # ---------- DELETE ----------
+    def test_owner_can_delete_item(self):
+        self.client.force_login(self.owner)
+        url = reverse(
+            "item_delete", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(url, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
+
+    def test_editor_can_delete_item(self):
+        # only if your policy allows editors to delete; if not, expect 404 and keep the item
+        self.client.force_login(self.editor)
+        url = reverse(
+            "item_delete", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(url, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
+
+    def test_viewer_cannot_delete_item(self):
+        self.client.force_login(self.viewer)
+        url = reverse(
+            "item_delete", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(url)  # no follow=True
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Item.objects.filter(pk=self.item.pk).exists())
+
+    def test_visitor_cannot_delete_item(self):
+        self.client.force_login(self.visitor)
+        url = reverse(
+            "item_delete", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Item.objects.filter(pk=self.item.pk).exists())

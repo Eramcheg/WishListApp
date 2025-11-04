@@ -9,7 +9,9 @@ from .views_front import (
     ItemDeleteView,
     ItemUpdateView,
     PublicWishlistView,
+    SharedWithMeListView,
     ShareTokenWishlistView,
+    WishlistAccessManageView,
     WishlistCreateView,
     WishlistDeleteView,
     WishlistDetailView,
@@ -22,6 +24,7 @@ from .views_front import (
 urlpatterns = [
     path("", WishlistListView.as_view(), name="wishlist_list"),
     path("new/", WishlistCreateView.as_view(), name="wishlist_create"),
+    path("shared/", SharedWithMeListView.as_view(), name="wishlists_shared_with_me"),
     path("<slug:slug>/edit/", WishlistUpdateView.as_view(), name="wishlist_edit"),
     path("<slug:slug>/delete/", WishlistDeleteView.as_view(), name="wishlist_delete"),
     path("<slug:slug>/new/", ItemCreateView.as_view(), name="item_create"),
@@ -45,6 +48,7 @@ urlpatterns = [
     ),
     path("s/<str:token>/", ShareTokenWishlistView.as_view(), name="wishlist_sharelink"),
     path("<slug:slug>/share/", WishlistShareView.as_view(), name="wishlist_share"),
+    path("<slug:slug>/access/", WishlistAccessManageView.as_view(), name="wishlist_access"),
     path("og/preview/", og_preview, name="og_preview"),
     path("<slug:slug>/", WishlistDetailView.as_view(), name="wishlist_detail"),
 ]

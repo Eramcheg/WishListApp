@@ -12,6 +12,12 @@
 <nav class="bg-white shadow mb-6 p-4 flex justify-between">
     <a href="/" class="font-bold text-xl">🎁 WishList</a>
     <div>
+        <a href="{% url "wishlist_list" %}" class="font-bold text-l">My wishlists</a>
+    </div>
+    <div>
+        <a href="{% url "wishlists_shared_with_me" %}" class="font-bold text-l">Shared wishlists</a>
+    </div>
+    <div>
         {% if user.is_authenticated %}
             <span class="mr-2">Hi, {{ user.username }}</span>
 

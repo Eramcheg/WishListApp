@@ -1,0 +1,26 @@
+{# templates/lists/shared_with_me.html #}
+{% extends "base.html" %}
+{% load permissions %}
+{% block title %}Shared with me{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4"></h2>
+
+<ul class="space-y-2">
+  {% for wl in wishlists %}
+    <li class="p-3 border rounded flex items-center justify-between">
+      <div>
+        <div class="font-semibold">{{ wl.title }}</div>
+        <div class="text-sm text-gray-500">Owner: {{ wl.owner.username }}</div>
+      </div>
+      <div class="space-x-2">
+        <a href="{% url 'public_wl_detail' wl.slug %}" class="px-3 py-1 rounded bg-blue-600 text-white">Open</a>
+        {% if wl|can_edit:request.user %}
+          <a href="{% url 'wishlist_detail' wl.slug %}" class="px-3 py-1 rounded bg-yellow-600 text-white">Edit</a>
+        {% endif %}
+      </div>
+    </li>
+  {% empty %}
+    <li class="text-gray-500">Nothing yet</li>
+  {% endfor %}
+</ul>
+{% endblock %}
