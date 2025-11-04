@@ -645,7 +645,6 @@ class WishlistAccessManageView(LoginRequiredMixin, View):
             uid = request.POST.get("revoke_user_id")
             WishlistAccess.objects.filter(wishlist=wl, user_id=uid).delete()
             messages.success(request, "Access has been revoked.")
-            log_event("access.revoke", request.user, wl, target_user_id=uid)
             return redirect("wishlist_access", slug=wl.slug)
 
         form = ShareAccessForm(request.POST)
@@ -669,7 +668,4 @@ class WishlistAccessManageView(LoginRequiredMixin, View):
             wishlist=wl, user=target, defaults={"role": role}
         )
         messages.success(request, f"Access for {target.username} = {role}.")
-        log_event(
-            "access.grant", request.user, wl, target_user_id=target.id, role=role, created=created
-        )
         return redirect("wishlist_access", slug=wl.slug)

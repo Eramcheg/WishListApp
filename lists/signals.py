@@ -2,7 +2,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from .audit import log_event
-from .models import Item, Wishlist
+from .models import Item, Wishlist, WishlistAccess
 
 
 @receiver(pre_save, sender=Wishlist)
@@ -93,3 +93,35 @@ def item_post_save(sender, instance: Item, created, **kwargs):
 @receiver(post_delete, sender=Item)
 def item_post_delete(sender, instance: Item, **kwargs):
     log_event("item.delete", None, instance.wishlist, url=instance.url, title=instance.title[:120])
+
+
+@receiver(post_save, sender=WishlistAccess)
+def log_access_save(sender, instance, created, **kwargs):
+    actor = getattr(instance, "_last_actor", None)
+    if created:
+        log_event(
+            "access.grant",
+            actor or instance.wishlist.owner,
+            instance.wishlist,
+            granted_to=instance.user,
+            role=instance.role,
+        )
+    else:
+        log_event(
+            "access.update",
+            actor or instance.wishlist.owner,
+            instance.wishlist,
+            granted_to=instance.user,
+            role=instance.role,
+        )
+
+
+@receiver(post_delete, sender=WishlistAccess)
+def log_access_delete(sender, instance, **kwargs):
+    actor = getattr(instance, "_last_actor", None)
+    log_event(
+        "access.revoke",
+        actor or instance.wishlist.owner,
+        instance.wishlist,
+        revoked_from=instance.user,
+    )
