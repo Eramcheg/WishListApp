@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Import result — {{ wishlist.title }}{% endblock %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">Import result</h2>
-<p>Created: {{ created }}, Missed: {{ skipped }}</p>
-<ul class="mt-4 space-y-1 text-sm">
-  {% for ln, url, status, msg in results %}
-    <li><span class="text-gray-500">#{{ ln }}</span> <code>{{ url }}</code> — 
-      {% if status == 'ok' %}<span class="text-green-700">{{ msg }}</span>
-      {% elif status == 'skip' %}<span class="text-yellow-700">{{ msg }}</span>
-      {% else %}<span class="text-red-700">{{ msg }}</span>{% endif %}
-    </li>
-  {% endfor %}
-</ul>
+    <h2 class="text-2xl font-bold mb-4">Import result</h2>
+    <p>Created: {{ created }}, Missed: {{ skipped }}</p>
+    <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline"> Back to the view page </a>
+    <ul class="mt-4 space-y-1 text-sm">
+      {% for ln, url, status, msg in results %}
+        <li><span class="text-gray-500">#{{ ln }}</span> <code>{{ url }}</code> —
+          {% if status == 'ok' %}<span class="text-green-700">{{ msg }}</span>
+          {% elif status == 'skip' %}<span class="text-yellow-700">{{ msg }}</span>
+          {% else %}<span class="text-red-700">{{ msg }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
 {% endblock %}

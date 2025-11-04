@@ -26,9 +26,10 @@
   {% for error in form.note_col.errors %}
     <div class="text-red-600 text-sm">{{ error }}</div>
   {% endfor %}
+  <a href="{{ cancel_url }}" class="mr-2 text-gray-600 underline"> Back </a>
 
   <button class="bg-green-600 text-white px-4 py-1 rounded">Import</button>
-</form>
+  </form>
 
 <h3 class="mt-6 font-medium">Preview (first 10 lines)</h3>
 <div class="overflow-x-auto mt-2">
