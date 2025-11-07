@@ -1,22 +1,31 @@
 {% extends "base.html" %}
-{% load query %}
 {% block title %}My Wishlists{% endblock %}
+
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">My Wishlists</h2>
-<a href="{% url 'wishlist_create' %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
+  {% include "partials/tabs.html" with tabs=tabs active="my" aria_label="Wishlists" %}
+  <h2 class="text-2xl font-bold mb-4 text-text">My Wishlists</h2>
 
-{% include "partials/list_filters.html" %}
+  <a href="{% url 'wishlist_create' %}" class="btn-primary btn btn-sm mb-4">
+    + New
+  </a>
 
-<ul class="space-y-2">
+  {% include "partials/list_filters.html" %}
+
+  <ul class="space-y-3">
     {% for wl in object_list %}
-        <li class="bg-white p-3 shadow rounded">
-            <a href="{% url 'wishlist_detail' wl.slug %}" class="text-blue-600 font-medium">{{ wl.title }}</a>
-            <p class="text-sm text-gray-500">{{ wl.description|default:"No description" }}</p>
-            <p class="text-sm align-right text-gray-500"> Views: {{ wl.public_view_count }} </p>
-        </li>
+
+      {% url 'wishlist_detail' wl.slug as wl_url %}
+      {% url 'wishlist_edit'   wl.slug as edit_url %}
+      {% with action_html='<a href="'|add:edit_url|add:'" class="action">Edit</a>' %}
+          <li>
+            {% include "partials/card_row.html" with href=wl_url icon="gift" title=wl.title subtitle=wl.description|default:"No description" meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
+          </li>
+      {% endwith %}
+
     {% empty %}
-        <p>No wishlists yet.</p>
+      <p class="text-muted">No wishlists yet.</p>
     {% endfor %}
-</ul>
-{% include "partials/pagination.html" %}
+  </ul>
+
+  {% include "partials/pagination.html" %}
 {% endblock %}

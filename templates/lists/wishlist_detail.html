@@ -1,61 +1,104 @@
 {% extends "base.html" %}
-{% block title %}{% if object.owner.id != request.user.id%} {{ object.owner }}'s wishlist "{{ object.title }}" {% else %} {{ object.title }} {% endif %} {% endblock %}
-{% block content %}
-<h2 class="text-2xl font-bold mb-4"> {% if object.owner.id != request.user.id%} {{ object.owner }}'s wishlist "{{ object.title }}" {% else %} {{ object.title }} {% endif %} </h2>
-<p class="mb-6 text-gray-600">{{ object.description }}</p>
-<div class="mb-4 space-x-2">
-    <a href="{% url 'wishlist_list' %}" class="px-3 py-1 rounded bg-gray-600 text-white">Back</a>
-    {% if object.owner.id == request.user.id %}
-        <a href="{% url 'wishlist_edit' object.slug %}" class="px-3 py-1 rounded bg-yellow-500 text-white">Edit</a>
-        <a href="{% url 'wishlist_delete' object.slug %}" class="px-3 py-1 rounded bg-red-600 text-white">Delete</a>
-    {% endif %}
-    <a href="{% url 'item_create' object.slug %}" class="bg-green-500 text-white px-4 py-1 rounded mb-3 inline-block">+ New</a>
-    <a href="{% url 'items_bulk_add' object.slug %}" class="bg-green-800 text-white px-4 py-1 rounded mb-3 inline-block">+ New multiple </a>
-    <a href="{% url 'items_import' object.slug %}" class="bg-green-900 text-white px-4 py-1 rounded mb-3 inline-block"> Import </a>
+{% load query %}
+{% block title %}
+  {% if object.owner_id != request.user.id %}
+    {{ object.owner }}'s wishlist "{{ object.title }}"
+  {% else %}
+    {{ object.title }}
+  {% endif %}
+{% endblock %}
 
-    {% if object.owner.id == request.user.id%}
-        <a href="{% url 'wishlist_access' object.slug %}" class="px-3 py-1 rounded bg-indigo-600 text-white">Add co-authors</a>
-        {% if object.is_public %}<a href="{% url 'public_wl_detail' object.slug %}" class="bg-blue-500 text-white px-4 py-1 rounded mb-3 inline-block">Share open link</a>{% endif %}
-        {% if object.share_token %}
-            <p class="mb-2">Anyone with this link can view your wishlist:</p>
-            <div class="flex items-center gap-2">
-              <input class="border rounded px-2 py-1 w-full" readonly
-                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlist_sharelink' object.share_token %}">
-            </div>
-            <form method="post" action="{% url 'wishlist_share' object.slug %}" class="mt-3">
-              {% csrf_token %}
-              <button name="revoke" value="1" class="bg-red-500 text-white px-3 py-1 rounded">
-                Revoke Link
-              </button>
-            </form>
-        {% else %}
-            <form method="post" action="{% url 'wishlist_share' object.slug %}">
-              {% csrf_token %}
-              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">
-                Generate Share Link
-              </button>
-            </form>
-        {% endif %}
+{% block content %}
+<div class="mb-6 flex items-start justify-between gap-3">
+  <div>
+    <h2 class="text-2xl font-bold">
+      {% if object.owner_id != request.user.id %}
+        {{ object.owner }}'s wishlist "{{ object.title }}"
+      {% else %}
+        {{ object.title }}
+      {% endif %}
+    </h2>
+    {% if object.description %}
+      <p class="mt-1 text-muted">{{ object.description }}</p>
     {% endif %}
+  </div>
+
+  <div class="flex items-center gap-2">
+    <a href="{% url 'wishlist_list' %}" class="btn btn-muted btn-sm">Back</a>
+
+    <!-- Primary CTA -->
+    <a href="{% url 'item_create' object.slug %}" class="btn btn-primary btn-sm">+ New item</a>
+
+    {% if object.owner_id == request.user.id %}
+      <!-- Compact “More” menu (no JS needed) -->
+      <details class="relative" id="more-menu">
+        <summary class="btn btn-secondary btn-sm cursor-pointer select-none">More</summary>
+        <div class="absolute right-0 mt-2 w-56 rounded-md border border-border bg-white shadow-lg z-10 p-1">
+          <a href="{% url 'wishlist_edit' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Edit wishlist</a>
+          <a href="{% url 'items_bulk_add' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Add multiple</a>
+          <a href="{% url 'items_import' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Import</a>
+          <a href="{% url 'wishlist_access' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Co-authors</a>
+          {% if object.is_public %}
+            <a href="{% url 'public_wl_detail' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Open public link</a>
+          {% endif %}
+          <div class="my-1 border-t border-border/60"></div>
+          <a href="{% url 'wishlist_delete' object.slug %}" class="block px-3 py-2 rounded text-error hover:bg-error/10">Delete</a>
+        </div>
+      </details>
+    {% endif %}
+  </div>
 </div>
-<h3 class="text-xl font-semibold mb-3">Items</h3>
-<ul class="space-y-2">
-    {% for item in object.items.all %}
-        <li class="bg-white p-3 shadow rounded">
-            {% if item.image_url %}
-                <img alt="{{ item.title }}" src="{{ item.image_url }}" class="w-16 h-16 mr-4">
-            {% endif %}
-            <span class="font-medium">{{ item.title }}</span>
-            {% if item.url %}
-                <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>
-            {% endif %}
-            <div class="float-right space-x-2">
-              <a href="{% url 'item_edit' wishlist_slug=object.slug item_slug=item.slug %}" class="text-yellow-600">Edit</a>
-              <a href="{% url 'item_delete' wishlist_slug=object.slug item_slug=item.slug %}" class="text-red-600">Delete</a>
-            </div>
-        </li>
+
+{% if object.owner_id == request.user.id %}
+  <!-- Share panel -->
+  <div class="mb-6 rounded-md border border-border bg-bg-secondary p-3 space-y-2">
+    {% if object.share_token %}
+      <p class="text-sm">Anyone with this link can view your wishlist:</p>
+      <div class="flex items-center gap-2">
+        <input class="inp text-sm" readonly
+               value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlist_sharelink' object.share_token %}" id="share-url">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="
+          navigator.clipboard.writeText(document.getElementById('share-url').value)
+        ">Copy</button>
+      </div>
+      <form method="post" action="{% url 'wishlist_share' object.slug %}">
+        {% csrf_token %}
+        <button name="revoke" value="1" class="btn btn-danger btn-sm mt-2">Revoke link</button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'wishlist_share' object.slug %}" class="flex items-center gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">Generate share link</button>
+      </form>
+    {% endif %}
+  </div>
+{% endif %}
+
+<h3 class="text-xl font-semibold">Items</h3>
+{% include "partials/pagination.html" %}
+<ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 mb-1">
+    {% for item in object_list %}
+        {% url 'item_edit' wishlist_slug=object.slug item_slug=item.slug as edit_url %}
+        {% url 'item_delete' wishlist_slug=object.slug item_slug=item.slug as delete_url %}
+        {% with action_html='<a href="'|add:edit_url|add:'" class="btn btn-secondary btn-xsm">Edit</a> <a href="'|add:delete_url|add:'" class="btn btn-danger btn-xsm">Delete</a>'%}
+            <li>
+              {% include "partials/card_tile.html" with href=url image_url=item.image_url title=item.title subtitle=item.note actions=action_html to_trunk=True%}
+            </li>
+        {% endwith %}
     {% empty %}
-        <p>No items yet.</p>
+      <p class="text-muted">No items yet.</p>
     {% endfor %}
-</ul>
+    </ul>
+    {% include "partials/pagination.html" %}
+    <script>
+        document.addEventListener('click', e => {
+        const menu = document.getElementById('more-menu');
+        if (!menu) return;
+        const summary = menu.querySelector('summary');
+        // if clicked outside both the summary and its content → close
+        if (menu.open && !menu.contains(e.target) && e.target !== summary) {
+          menu.removeAttribute('open');
+        }
+        });
+    </script>
 {% endblock %}

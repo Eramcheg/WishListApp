@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.16"
+  },
+  "name": "wishlistapp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.16",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eramcheg/WishListApp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Eramcheg/WishListApp/issues"
+  },
+  "homepage": "https://github.com/Eramcheg/WishListApp#readme",
+  "description": ""
+}

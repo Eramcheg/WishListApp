@@ -9,7 +9,7 @@
 </p>
 <form method="post">
   {% csrf_token %}
-  <a href="javascript:history.back()" class="ml-2 text-blue-600">Cancel</a>
-  <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
+  <a href="javascript:history.back()" class="btn-secondary btn">Cancel</a>
+  <button type="submit" class="btn-danger btn">Delete</button>
 </form>
 {% endblock %}

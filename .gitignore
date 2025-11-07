@@ -2,11 +2,20 @@
 
 # IDE files
 .idea
-
+node_modules/
+npm-debug.log*
+.pnp.*
+# Maps и кэш
+*.map
+.cache/
+# Python/Django (на всякий)
+*.py[cod]
+*.egg-info/
+db.sqlite3
+/staticfiles/
+/media/
 # Python bytecode
 **/__pycache__/
-*.py[cod]
-__pycache__/
 *.sqlite3
 .coverage
 

@@ -1,0 +1,35 @@
+<nav class="fixed top-0 right-0 h-screen w-16 bg-bg-secondary border-l border-border
+            flex flex-col items-center justify-between py-4 z-20">
+  <div class="flex w-16 flex-col items-center space-y-6">
+    <a href="/" class="group text-muted hover:text-accent transition " title="Profile">
+      <i data-lucide="user" class="w-6 h-6"></i>
+    </a>
+
+    <a href="{% url 'wishlist_list' %}" class="group text-muted hover:text-accent transition" title="Wishlists">
+      <i data-lucide="gift" class="w-6 h-6"></i>
+    </a>
+
+    <a href="/" class="group text-muted hover:text-accent transition relative" title="Friends">
+      <i data-lucide="users" class="w-6 h-6"></i>
+      {% if pending_invites_count %}
+      <span class="absolute -top-1 -right-1 bg-accent text-white text-[10px] rounded-full px-1">
+        {{ pending_invites_count }}
+      </span>
+      {% endif %}
+    </a>
+  </div>
+
+  {% if user.is_authenticated %}
+      <div class="flex flex-col items-center space-y-5">
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded transition">
+              <a class="text-muted hover:text-accent transition" title="Logout">
+                  <i data-lucide="log-out" class="w-6 h-6"></i>
+              </a>
+            </button>
+          </form>
+      </div>
+  {% endif %}
+</nav>

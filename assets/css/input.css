@@ -1,0 +1,257 @@
+@config "../../tailwind.config.js";
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme {
+  --color-bg: #FAFAFA;
+  --color-bg-secondary: #f5f4c3;
+  --color-text: #111827;
+  --color-text-muted: #6B7280;
+  --color-accent: #00809D;
+  --color-border: #E5E7EB;
+  --color-error: #EF4444;
+  --color-success: #22C55E;
+}
+[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-text: #f9fafb;
+  --color-accent: #818cf8;
+  --color-border: #334155;
+}
+
+@layer base {
+  h1 { @apply text-4xl font-bold mb-4; }
+  h2 { @apply text-2xl font-semibold mb-3; }
+  h3 { @apply text-xl font-semibold mb-2; }
+  p  { @apply text-base leading-relaxed mb-2; }
+  small { @apply text-sm text-muted; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  i[data-lucide] {
+    @apply text-muted hover:text-accent transition;
+  }
+}
+
+@utility inp {
+  @apply w-full bg-bg-secondary text-text placeholder:text-muted
+         border border-border rounded-md
+         px-3 py-2
+         outline-none transition
+         focus:ring-2 focus:ring-accent/40 focus:border-accent
+         disabled:opacity-50 disabled:pointer-events-none;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium
+           transition focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-white hover:opacity-90;
+  }
+
+  .btn-secondary {
+    @apply border border-accent text-accent hover:bg-accent hover:text-white;
+  }
+
+  .btn-muted {
+    @apply bg-bg-secondary border border-border text-text hover:bg-border/20;
+  }
+
+  .btn-danger {
+    @apply bg-error text-white hover:opacity-90;
+  }
+
+
+  .btn-xsm { @apply px-2 py-1 text-sm; }
+  .btn-sm { @apply px-3 py-2 text-sm; }
+  .btn-md { @apply px-4 py-2 text-base; }
+  .btn-lg { @apply px-6 py-3 text-lg; }
+
+
+  .form-field { @apply space-y-1; }
+  .form-label { @apply block text-sm font-medium text-text; }
+  .form-hint  { @apply text-sm text-muted; }
+  .form-error { @apply text-sm text-error; }
+
+  /* Размеры (по желанию) */
+  .inp-sm { @apply px-2 py-1 text-sm; }
+  .inp-lg { @apply px-4 py-3 text-lg; }
+
+  /* Варианты по типам */
+  .inp-text    { @apply inp; }
+  .inp-number  { @apply inp text-right tabular-nums; }
+  .inp-pass    { @apply inp; }
+  .area        { @apply inp align-top min-h-[120px]; }
+  .select      {
+    @apply inp appearance-none pr-9 bg-bg-secondary border border-border rounded px-3 py-2 text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition;
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 1rem;
+  }
+
+  .is-invalid { @apply border-error focus:ring-error/30 focus:border-error; }
+  .is-success { @apply border-success focus:ring-success/30 focus:border-success; }
+
+  .with-icon   { @apply relative; }
+  .icon-left   { @apply absolute left-3 top-1/2 -translate-y-1/2 text-muted; }
+  .icon-right  { @apply absolute right-3 top-1/2 -translate-y-1/2 text-muted; }
+  .pl-icon     { @apply pl-10; }
+  .pr-icon     { @apply pr-10; }
+
+  .chk {
+    @apply align-middle h-5 w-5 inline-block
+           border border-border rounded
+           bg-bg-secondary
+           cursor-pointer
+           focus:ring-2 focus:ring-accent/40;
+    accent-color: var(--color-accent);
+  }
+  .chk-sm { @apply h-4 w-4; }
+  .chk-lg { @apply h-6 w-6; }
+
+  .chk-row { @apply flex items-center gap-2; }
+
+  .tabs {
+    @apply border-b border-border mb-4 overflow-x-auto;
+  }
+  .tabs-list {
+    @apply flex gap-6 min-w-max;
+  }
+  .tab {
+    @apply -mb-[1px] inline-flex items-center gap-2 px-1 pb-3
+           text-sm text-muted border-b-2 border-transparent
+           hover:text-accent transition whitespace-nowrap;
+  }
+  .tab-active {
+    @apply text-accent border-accent;
+  }
+
+
+  .card {
+    @apply bg-bg-secondary border border-border rounded-lg p-4;
+  }
+  .card-hover { @apply transition hover:shadow-sm; }
+  .card-clickable { @apply cursor-pointer; }
+  .truncate-1 { @apply truncate; }
+  .truncate-2 {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .text-wrap {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+
+
+  /* ---------- УНИВЕРСАЛЬНАЯ РЯДОВАЯ (LEFT | CENTER | RIGHT) ---------- */
+  .item {
+    @apply flex items-center gap-4;
+  }
+  .item-stack { @apply flex-col sm:flex-row items-start sm:items-center; } /* для мобильных: перенос вправо вниз */
+  .item-left { @apply shrink-0; }
+  .item-main { @apply min-w-0 flex-1; }       /* важен min-w-0 для truncate */
+  .item-right { @apply shrink-0 ml-auto flex items-center gap-2; }
+
+  .item-title { @apply text-base font-medium text-text; }
+  .item-title-link { @apply text-accent hover:opacity-90 transition; }
+  .item-subtitle { @apply text-sm text-muted; }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs rounded px-2 py-0.5;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+  }
+  .meta { @apply text-xs text-muted; }
+
+  .actions { @apply flex items-center gap-2; }
+  .action {
+    @apply inline-flex items-center justify-center px-2.5 py-1.5 rounded-md border border-border text-text
+           hover:bg-border/20 transition;
+  }
+
+  /* Миниатюра/аватар по умолчанию */
+  .thumb {
+    @apply w-12 h-12 rounded-md bg-border/40 flex items-center justify-center text-muted overflow-hidden;
+  }
+  .thumb img { @apply w-full h-full object-cover; }
+
+
+
+  /* ---------- ВЕРТИКАЛЬНАЯ КАРТОЧКА (TOP | CENTER | BOTTOM) ---------- */
+  .vcard { @apply bg-bg-secondary border border-border rounded-xl overflow-hidden; }
+  .vcard-top { @apply relative w-full aspect-[16/9] bg-border/30; } /* можно поменять аспект */
+  .vcard-top img { @apply w-full h-full object-cover; }
+  .vcard-body { @apply p-4; }
+  .vcard-title { @apply text-base font-semibold text-text; }
+  .vcard-subtitle { @apply text-sm text-muted mt-1; }
+  .vcard-bottom { @apply p-4 pt-0 flex items-center justify-between gap-3; }
+
+  /* ---------- СКЕЛЕТОНЫ ---------- */
+  .skeleton { @apply animate-pulse bg-border/30 rounded; }
+  .skeleton-line { @apply h-3 w-full rounded bg-border/40; }
+  .skeleton-thumb { @apply h-12 w-12 rounded-md bg-border/40; }
+
+
+  .alert { @apply border rounded-md p-3 mb-3 flex items-start gap-2; }
+  .alert-info    { @apply border-border bg-bg-secondary text-text; }
+  .alert-success { @apply border-success/40 bg-success/10 text-success; }
+  .alert-error   { @apply border-error/40 bg-error/10 text-error; }
+  .alert-title   { @apply font-medium; }
+  .alert-desc    { @apply text-sm text-muted; }
+
+  /* ---------- TOASTS (правый верхний угол) ---------- */
+  .toast-wrap {
+    @apply fixed top-4 z-50 flex flex-col gap-3 w-full pointer-events-none;
+  }
+  /* сдвигаем чуть левее, т.к. у тебя ПРАВЫЙ сайдбар w-16 */
+  @media (min-width: 640px) {
+    .toast-wrap { right: 5rem; width: 22rem; } /* ~right-20 */
+  }
+  @media (max-width: 639px) {
+    .toast-wrap { right: 1rem; width: calc(100% - 2rem); }
+  }
+
+  .toast {
+    @apply pointer-events-auto rounded-lg border p-3 shadow-sm bg-bg-secondary border-border
+           text-text relative overflow-hidden;
+  }
+  .toast-row { @apply flex items-start gap-3; }
+  .toast-icon { @apply mt-[3px] shrink-0; }
+  .toast-title { @apply font-medium; }
+  .toast-desc  { @apply text-sm text-muted; }
+  .toast-close {
+    @apply ml-auto text-muted hover:text-text transition cursor-pointer;
+  }
+
+  /* Цветовые вариации */
+  .toast--info    .toast-icon { color: var(--color-accent); }
+  .toast--success .toast-icon { color: var(--color-success); }
+  .toast--error   .toast-icon { color: var(--color-error); }
+
+  /* Полоса прогресса (идёт сверху) */
+  .toast-progress {
+    position:absolute; left:0; top:0; height:3px; width:100%;
+    background: color-mix(in srgb, var(--color-accent) 70%, transparent);
+    transform-origin:left center;
+    animation: toast-progress linear var(--toast-duration, 6s) forwards;
+  }
+  .toast--success .toast-progress {
+    background: color-mix(in srgb, var(--color-success) 70%, transparent);
+  }
+  .toast--error .toast-progress {
+    background: color-mix(in srgb, var(--color-error) 70%, transparent);
+  }
+  @keyframes toast-progress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+
+  /* Анимации появления/ухода */
+  .toast-enter   { transform: translateX(16px); opacity: 0; }
+  .toast-enter-active { transition: transform .2s ease, opacity .2s ease; transform: translateX(0); opacity:1; }
+  .toast-leave   { transition: transform .2s ease, opacity .2s ease; transform: translateX(16px); opacity:0; }
+}

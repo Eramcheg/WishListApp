@@ -1,0 +1,37 @@
+<div class="card card-hover">
+  <div class="item {% if stacked %}item-stack{% endif %}">
+    <!-- LEFT -->
+    <div class="item-left">
+      {% if thumb_url %}
+        <div class="thumb"><img src="{{ thumb_url }}" alt=""></div>
+      {% elif icon %}
+        <div class="thumb"><i data-lucide="{{ icon }}" class="w-5 h-5"></i></div>
+      {% else %}
+        <div class="thumb"></div>
+      {% endif %}
+    </div>
+
+    <!-- CENTER -->
+    <div class="item-main">
+      {% if href %}
+        <a href="{{ href }}" class="item-title item-title-link truncate-1">
+          {{ title }}
+        </a>
+      {% else %}
+        <div class="item-title truncate-1">{{ title }}</div>
+      {% endif %}
+      {% if subtitle %}
+        <div class="item-subtitle truncate-2">{{ subtitle }}</div>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT -->
+    <div class="item-right">
+      {% if badges %}
+        {% for b in badges %}<span class="badge">{{ b.text }}</span>{% endfor %}
+      {% endif %}
+      {% if meta %}<span class="meta">{{ meta }}</span>{% endif %}
+      {% if actions %}<div class="actions">{{ actions|safe }}</div>{% endif %}
+    </div>
+  </div>
+</div>

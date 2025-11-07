@@ -1,5 +1,6 @@
 {# templates/lists/wishlist_form.html #}
 {% extends "base.html" %}
+{% load widget_tweaks %}
 {% block title %}New wishlist{% endblock %}
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">Create wishlist</h2>
@@ -13,24 +14,24 @@
       </div>
     {% endif %}
 
-    <div class="mb-3">
-        {{ form.title.label_tag }} {{ form.title }}
+    <div class="mb-3 form-field">
+        {{ form.title.label_tag }} {{ form.title|add_class:"inp-text" }}
         {% for error in form.title.errors %}
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
-    <div class="mb-3">
-        {{ form.description.label_tag }} {{ form.description }}
+    <div class="mb-3 form-field">
+        {{ form.description.label_tag }} {{ form.description|add_class:"area" }}
         {% for error in form.description.errors %}
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
-    <div>
-        <label class="inline-flex items-center">
-            {{ form.is_public }} <span class="ml-2">Public</span>
+    <div class="form-field">
+        <label class="chk-row">
+            {{ form.is_public|add_class:"chk" }} <span class="ml-2">Public</span>
         </label>
     </div>
     <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline">Cancel</a>
-    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded"> {% if object %}Save{% else %}Create{% endif %}</button>
+    <button type="submit" class="btn-primary btn"> {% if object %}Save{% else %}Create{% endif %}</button>
 </form>
 {% endblock %}

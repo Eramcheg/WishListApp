@@ -7,18 +7,18 @@
 
 <form method="post" class="mb-6 flex gap-2 items-end">
   {% csrf_token %}
-  <div>
+  <div class="form-field">
     <label class="block text-sm">Username</label>
-    <input name="username_or_email" class="border rounded px-2 py-1" required>
+    <input name="username_or_email" class="inp-text" required>
   </div>
-  <div>
+  <div class="form-field">
     <label class="block text-sm">Role</label>
-    <select name="role" class="border rounded px-2 py-1">
+    <select name="role" class="select">
       <option value="view">Viewer</option>
       <option value="edit">Editor</option>
     </select>
   </div>
-  <button class="bg-blue-600 text-white px-3 py-2 rounded">Provide access</button>
+  <button class="btn-primary btn">Provide access</button>
 </form>
 
 <h3 class="font-semibold mb-2">Current coauthors</h3>

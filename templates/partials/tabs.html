@@ -1,0 +1,16 @@
+{# expects: tabs=[{key,label,url,icon?}], active=string #}
+<nav class="tabs" role="tablist" aria-label="{{ aria_label|default:'Section tabs' }}">
+  <div class="tabs-list">
+    {% for t in tabs %}
+      <a href="{{ t.url }}"
+         class="tab {% if t.key == active %}tab-active{% endif %}"
+         role="tab"
+         data-smth="{{ t.key }}"
+         aria-selected="{% if t.key == active %}true{% else %}false{% endif %}"
+         aria-current="{% if t.key == active %}page{% endif %}">
+        {% if t.icon %}<i data-lucide="{{ t.icon }}" class="w-4 h-4"></i>{% endif %}
+        {{ t.label }}
+      </a>
+    {% endfor %}
+  </div>
+</nav>

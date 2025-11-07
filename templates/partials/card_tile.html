@@ -1,0 +1,34 @@
+<div class="vcard">
+<div class="">
+  <!-- TOP -->
+  <div class="vcard-top">
+    {% if image_url %}
+      <img src="{{ image_url }}" alt="">
+    {% else %}
+      <div class="absolute inset-0 flex items-center justify-center text-muted">
+        {% if icon %}<i data-lucide="{{ icon }}" class="w-8 h-8"></i>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- CENTER -->
+  <div class="vcard-body">
+    <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
+    {% if subtitle %}
+      <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}">{{ subtitle }}</div>
+    {% endif %}
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="vcard-bottom">
+    <div class="flex items-center gap-2">
+      {% if badges %}
+        {% for b in badges %}<span class="badge">{{ b.text }}</span>{% endfor %}
+      {% endif %}
+    </div>
+    {% if actions %}
+      <div class="actions">{{ actions|safe }}</div>
+    {% endif %}
+  </div>
+</div>
+</div>

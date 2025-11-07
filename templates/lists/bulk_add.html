@@ -6,18 +6,22 @@
 
 <form method="post" class="space-y-3">
   {% csrf_token %}
-  <label class="block text-sm text-gray-600">Links (One per line)</label>
-  <textarea name="urls_text" rows="10" class="w-full border rounded px-2 py-1"
-            placeholder="https://example.com/item-1
+  <div class="form-field">
+
+      <label class="block text-sm text-gray-600">Links (One per line)</label>
+      <textarea name="urls_text" rows="10" class="area"
+                placeholder="https://example.com/item-1
 https://example.com/item-2
 https://example.com/item-3">{{ form.data.urls_text|default_if_none:'' }}</textarea>
 
-  <div class="text-sm text-gray-500">
-    Hint: each line is a separate link. Empty lines are ignored. Duplicates are skipped.
+      <div class="text-sm text-gray-500">
+        Hint: each line is a separate link. Empty lines are ignored. Duplicates are skipped.
+      </div>
   </div>
 
-  <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline">Cancel</a>
-  <button class="bg-blue-600 text-white px-4 py-1 rounded">Add</button>
+
+  <a href="{{ cancel_url }}" class="btn-secondary btn">Cancel</a>
+  <button class="btn-primary btn">Add</button>
 </form>
 
 {% if done %}

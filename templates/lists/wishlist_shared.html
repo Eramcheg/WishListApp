@@ -4,6 +4,7 @@
 <h2 class="text-2xl font-bold mb-4">{{ object.title }}</h2>
 <p class="mb-6 text-gray-600">{{ object.description }}</p>
 <h3 class="text-xl font-semibold mb-3">Items</h3>
+{% include "partials/pagination.html" %}
 <ul class="space-y-2">
     {% for item in object.items.all %}
         <li class="bg-white p-3 shadow rounded">
@@ -12,11 +13,12 @@
             {% endif %}
             <span class="font-medium">{{ item.title }}</span>
             {% if item.url %}
-                <a href="{{ item.url }}" class="text-blue-500 ml-2">🔗</a>
+                <a href="{{ item.url }}" class="btn-primary btn">🔗</a>
             {% endif %}
         </li>
     {% empty %}
         <p>No items yet.</p>
     {% endfor %}
 </ul>
+{% include "partials/pagination.html" %}
 {% endblock %}

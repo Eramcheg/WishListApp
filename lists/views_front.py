@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import Http404, JsonResponse
@@ -40,6 +41,16 @@ from .og import enrich_from_url
 from .views import _read_csv_bytes
 
 SESSION_KEY = "csv_import_jobs"
+wishlist_tabs = [
+    {"key": "my", "label": "My", "url": reverse_lazy("wishlist_list"), "icon": "gift"},
+    {
+        "key": "shared",
+        "label": "Shared",
+        "url": reverse_lazy("wishlists_shared_with_me"),
+        "icon": "share-2",
+    },
+]
+friends_tabs = []
 
 
 @method_decorator(login_required, name="dispatch")
@@ -69,6 +80,7 @@ class WishlistListView(ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["q"] = self.request.GET.get("q", "")
         ctx["sort"] = self.request.GET.get("sort", "-created")
+        ctx["tabs"] = wishlist_tabs
         return ctx
 
 
@@ -85,6 +97,11 @@ class SharedWithMeListView(LoginRequiredMixin, ListView):
             .distinct()
         )
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["tabs"] = wishlist_tabs
+        return ctx
+
 
 @method_decorator(login_required, name="dispatch")
 class WishlistUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
@@ -99,7 +116,6 @@ class WishlistUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
         return Wishlist.objects.filter(owner=self.request.user)
 
     def get_success_url(self):
-        messages.success(self.request, "Wishlist updated")
         return reverse("wishlist_detail", kwargs={"slug": self.object.slug})
 
     def get_context_data(self, **kwargs):
@@ -108,10 +124,10 @@ class WishlistUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj._last_actor = self.request.user
-        obj.save()
-        return super().form_valid(form)
+        form.instance._last_actor = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, "Wishlist updated")
+        return response
 
 
 @method_decorator(login_required, name="dispatch")
@@ -133,7 +149,7 @@ class PublicWishlistView(PolicyCheckMixin, DetailView):
     slug_field = "slug"
     slug_url_kwarg = "slug"
     template_name = "lists/wishlist_public.html"
-
+    paginate_by = 8
     policy_method_name = "can_view"
 
     def get_queryset(self):
@@ -164,6 +180,21 @@ class PublicWishlistView(PolicyCheckMixin, DetailView):
 
         return resp
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        items = self.object.items.all()
+        paginator = Paginator(items, self.paginate_by)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+        context.update(
+            {
+                "paginator": paginator,
+                "page_obj": page_obj,
+                "is_paginated": page_obj.has_other_pages(),
+                "object_list": page_obj.object_list,
+            }
+        )
+        return context
+
 
 class ShareTokenWishlistView(DetailView):
     model = Wishlist
@@ -182,8 +213,23 @@ class WishlistDetailView(LoginRequiredMixin, PolicyCheckMixin, DetailView):
     slug_field = "slug"
     slug_url_kwarg = "slug"
     template_name = "lists/wishlist_detail.html"
-
     policy_method_name = "can_edit"
+    paginate_by = 8
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        items = self.object.items.all()
+        paginator = Paginator(items, self.paginate_by)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+        context.update(
+            {
+                "paginator": paginator,
+                "page_obj": page_obj,
+                "is_paginated": page_obj.has_other_pages(),
+                "object_list": page_obj.object_list,
+            }
+        )
+        return context
 
 
 @method_decorator(login_required, name="dispatch")
@@ -207,8 +253,10 @@ class WishlistCreateView(CreateView):
                 obj = form.save(commit=False)
                 obj._last_actor = self.request.user
                 obj.save()
+                messages.success(self.request, "Wishlist created")
                 return super().form_valid(form)
         except IntegrityError:
+            messages.error(self.request, "Please fix the errors below.")
             form.add_error("title", "You already have a wishlist with this title.")
             return self.form_invalid(form)
 
@@ -275,6 +323,7 @@ class ItemCreateView(LoginRequiredMixin, PolicyCheckMixin, CreateView):
             obj = form.save(commit=False)
             obj._last_actor = self.request.user
             obj.save()
+            messages.success(self.request, "Item created.")
             return super().form_valid(form)
         except ValidationError as e:
             if hasattr(e, "error_dict") and "image_url" in e.error_dict:
@@ -282,6 +331,7 @@ class ItemCreateView(LoginRequiredMixin, PolicyCheckMixin, CreateView):
                     form.add_error("image_url", err)
             else:
                 form.add_error(None, e)
+            messages.error(self.request, "Error occurred.")
             return self.form_invalid(form)
 
     def get_success_url(self):
@@ -297,8 +347,11 @@ class ItemUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
     slug_url_kwarg = "item_slug"
     policy_method_name = "can_edit"
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(wishlist__slug=self.kwargs["wishlist_slug"])
+
     def get_success_url(self):
-        messages.success(self.request, "Item updated")
         return reverse("wishlist_detail", kwargs={"slug": self.object.wishlist.slug})
 
     def get_context_data(self, **kwargs):
@@ -311,6 +364,7 @@ class ItemUpdateView(LoginRequiredMixin, PolicyCheckMixin, UpdateView):
         obj = form.save(commit=False)
         obj._last_actor = self.request.user
         obj.save()
+        messages.success(self.request, "Item updated.")
         return super().form_valid(form)
 
 
@@ -321,6 +375,10 @@ class ItemDeleteView(LoginRequiredMixin, PolicyCheckMixin, DeleteView):
     slug_field = "slug"
     slug_url_kwarg = "item_slug"
     policy_method_name = "can_edit"
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(wishlist__slug=self.kwargs["wishlist_slug"])
 
     def get_success_url(self):
         messages.success(self.request, "Item deleted")
@@ -406,6 +464,7 @@ class BulkAddView(LoginRequiredMixin, FormView):
             skipped=skipped,
             lines=len(urls),
         )
+        messages.success(self.request, "Bulk process finished.")
         return self.render_to_response(
             self.get_context_data(
                 form=form,

@@ -1,66 +1,71 @@
 {# templates/lists/wishlist_item_form.html #}
 {% extends "base.html" %}
+{% load widget_tweaks %}
 {% block title %}New item{% endblock %}
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">Add item to wishlist</h2>
 <form method="post" class="space-y-3">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    <div>
-        {{ form.title.label_tag }} {{ form.title }}
+    <div class="form-field">
+        {{ form.title.label_tag }} {{ form.title|add_class:"inp-text" }}
         {% for error in form.title.errors %}
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
-    <div>
-        {{ form.url.label_tag }} {{ form.url }} {% if not object %} <button type="button" id="btn-enrich" class="px-2 py-1 bg-gray-200 rounded"> Fill form from url </button> {% endif %}
+    <div class="form-field">
+        {{ form.url.label_tag }} {{ form.url|add_class:"inp-text" }}
+        {% if not object %}
+            <button type="button" id="btn-enrich" class="btn-primary btn"> Fill form from url </button>
+        {% endif %}
         {% for error in form.url.errors %}
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
-    <div>
-        {{ form.note.label_tag }} {{ form.note }}
-        {% for error in form.note.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
-    </div>
-    <div>
-        {{ form.image_url.label_tag }} {{ form.image_url }}
+    <div class="form-field">
+        {{ form.image_url.label_tag }} {{ form.image_url|add_class:"inp-text" }}
         {% for error in form.image_url.errors %}
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
-    <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline">Cancel</a>
-    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded"> {% if object %}Save{% else %}Create{% endif %} </button>
+    <div class="form-field">
+        {{ form.note.label_tag }} {{ form.note|add_class:"area" }}
+        {% for error in form.note.errors %}
+          <div class="text-red-600 text-sm">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <a href="{{ cancel_url }}" class="btn-secondary btn ">Cancel</a>
+    <button type="submit" class="btn-primary btn"> {% if object %}Save{% else %}Create{% endif %} </button>
     </form>
 <script>
 document.getElementById("btn-enrich").addEventListener("click", async () => {
-  const input = document.getElementById("id_url");
-  const url = document.getElementById("id_url").value.trim();
-  if (!url) return;
+    const input = document.getElementById("id_url");
+    const url = document.getElementById("id_url").value.trim();
+    if (!url) return;
 
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    input.focus();
-    return;
-  }
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        input.focus();
+        return;
+    }
 
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    input.focus();
-    return;
-  }
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+        input.focus();
+        return;
+    }
 
-  try {
-    const resp = await fetch("{% url 'og_preview' %}?url=" + encodeURIComponent(url), { credentials: "include" });
-    if (!resp.ok) throw new Error("failed");
-    const data = await resp.json();
-    if (data.title && !document.getElementById("id_title").value)
-      document.getElementById("id_title").value = data.title;
-    if (data.image_url && !document.getElementById("id_image_url").value)
-      document.getElementById("id_image_url").value = data.image_url;
-  } catch(e) { console.error(e); }
+    try {
+        const resp = await fetch("{% url 'og_preview' %}?url=" + encodeURIComponent(url), { credentials: "include" });
+        if (!resp.ok) throw new Error("failed");
+            const data = await resp.json();
+        if (data.title && !document.getElementById("id_title").value)
+            document.getElementById("id_title").value = data.title;
+        if (data.image_url && !document.getElementById("id_image_url").value)
+            document.getElementById("id_image_url").value = data.image_url;
+    }
+    catch(e) { console.error(e); }
 });
 </script>
 {% endblock %}
