@@ -48,80 +48,113 @@
 
 </body>
 <script>
+
     lucide.createIcons();
-        (function () {
-          const root = document.getElementById('toast-root');
+    (function () {
+      const root = document.getElementById('toast-root');
 
-          function iconFor(type) {
-            const map = { info:'info', success:'check-circle', error:'alert-triangle' };
-            return map[type] || 'info';
-          }
+      function iconFor(type) {
+        const map = { info:'info', success:'check-circle', error:'alert-triangle' };
+        return map[type] || 'info';
+      }
+      document.querySelectorAll('[data-truncate]').forEach(el => {
+        // 1) Настраиваем количество строк
+        const lines = parseInt(el.dataset.lines || '2', 10);
+        el.classList.add('truncate-box');
+        el.style.setProperty('--lines', lines);
 
-          // Создание DOM тоста
-          function createToast({ type='info', title='', message='', duration=6000 }) {
-            const el = document.createElement('div');
-            el.className = `toast toast--${type} toast-enter`;
-            el.setAttribute('role', type === 'error' ? 'alert' : 'status');
-            el.style.setProperty('--toast-duration', `${duration}ms`);
+        // 2) Проверим, есть ли реальное переполнение; если нет — кнопку не добавляем
+        // Небольшой setTimeout, чтобы браузер успел посчитать размеры после рендеринга шрифтов
+        setTimeout(() => {
+          const isOverflowing = el.scrollHeight > el.clientHeight + 1;
+          if (!isOverflowing) return;
 
-            el.innerHTML = `
-              <div class="toast-progress"></div>
-              <div class="toast-row">
-                <span class="toast-icon"><i data-lucide="${iconFor(type)}" class="w-5 h-5"></i></span>
-                <div class="min-w-0">
-                  ${title ? `<div class="toast-title">${title}</div>` : ``}
-                  ${message ? `<div class="toast-desc">${message}</div>` : ``}
-                </div>
-                <button class="toast-close" aria-label="Close" type="button">&times;</button>
-              </div>
-            `;
+          // 3) Создаём кнопку
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          // Замените на свои Tailwind-классы, если нужно
+          btn.className = 'truncate-toggle';
+          const more = el.dataset.more || 'Показать ещё';
+          const less = el.dataset.less || 'Свернуть';
+          btn.textContent = more;
+          btn.setAttribute('aria-expanded', 'false');
 
-            root.appendChild(el);
-            requestAnimationFrame(() => {
-              el.classList.add('toast-enter-active');
-              setTimeout(() => el.classList.remove('toast-enter','toast-enter-active'), 220);
-            });
+          // 4) Обработчик клика
+          btn.addEventListener('click', () => {
+            const expanded = el.classList.toggle('is-expanded');
+            btn.textContent = expanded ? less : more;
+            btn.setAttribute('aria-expanded', String(expanded));
+          });
 
-            el.querySelector('.toast-close').addEventListener('click', () => closeToast(el));
-            let remaining = duration, started = Date.now(), timer;
-            const progress = el.querySelector('.toast-progress');
+          // 5) Вставляем кнопку сразу после элемента
+          el.insertAdjacentElement('afterend', btn);
+        }, 0);
+      });
+      // Создание DOM тоста
+      function createToast({ type='info', title='', message='', duration=6000 }) {
+        const el = document.createElement('div');
+        el.className = `toast toast--${type} toast-enter`;
+        el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        el.style.setProperty('--toast-duration', `${duration}ms`);
 
-            function startTimer() {
-              started = Date.now();
-              progress.style.animationPlayState = 'running';
-              timer = setTimeout(() => closeToast(el), remaining);
-            }
-            function pauseTimer() {
-              clearTimeout(timer);
-              const elapsed = Date.now() - started;
-              remaining = Math.max(0, remaining - elapsed);
-              progress.style.animationPlayState = 'paused';
-            }
+        el.innerHTML = `
+          <div class="toast-progress"></div>
+          <div class="toast-row">
+            <span class="toast-icon"><i data-lucide="${iconFor(type)}" class="w-5 h-5"></i></span>
+            <div class="min-w-0">
+              ${title ? `<div class="toast-title">${title}</div>` : ``}
+              ${message ? `<div class="toast-desc">${message}</div>` : ``}
+            </div>
+            <button class="toast-close" aria-label="Close" type="button">&times;</button>
+          </div>
+        `;
 
-            el.addEventListener('mouseenter', pauseTimer);
-            el.addEventListener('mouseleave', () => {
-              if (remaining > 0) startTimer();
-            });
+        root.appendChild(el);
+        requestAnimationFrame(() => {
+          el.classList.add('toast-enter-active');
+          setTimeout(() => el.classList.remove('toast-enter','toast-enter-active'), 220);
+        });
 
-            startTimer();
-            if (window.lucide) { window.lucide.createIcons({ icons: window.lucide.icons, attrs: {}}); }
-            return el;
-          }
+        el.querySelector('.toast-close').addEventListener('click', () => closeToast(el));
+        let remaining = duration, started = Date.now(), timer;
+        const progress = el.querySelector('.toast-progress');
 
-          function closeToast(el) {
-            el.classList.add('toast-leave');
-            setTimeout(() => { el.remove(); }, 220);
-          }
+        function startTimer() {
+          started = Date.now();
+          progress.style.animationPlayState = 'running';
+          timer = setTimeout(() => closeToast(el), remaining);
+        }
+        function pauseTimer() {
+          clearTimeout(timer);
+          const elapsed = Date.now() - started;
+          remaining = Math.max(0, remaining - elapsed);
+          progress.style.animationPlayState = 'paused';
+        }
 
-          window.addToast = function({ type='info', title='', message='', duration=6000 } = {}) {
-            return createToast({ type, title, message, duration });
-          };
-          window.toast = {
-            info:    (msg, t='Info', d=6000) => addToast({ type:'info',    title:t, message:msg, duration:d }),
-            success: (msg, t='Success', d=4000) => addToast({ type:'success', title:t, message:msg, duration:d }),
-            error:   (msg, t='Error', d=7000) => addToast({ type:'error',   title:t, message:msg, duration:d }),
-          };
-        })();
+        el.addEventListener('mouseenter', pauseTimer);
+        el.addEventListener('mouseleave', () => {
+          if (remaining > 0) startTimer();
+        });
+
+        startTimer();
+        if (window.lucide) { window.lucide.createIcons({ icons: window.lucide.icons, attrs: {}}); }
+        return el;
+      }
+
+      function closeToast(el) {
+        el.classList.add('toast-leave');
+        setTimeout(() => { el.remove(); }, 220);
+      }
+
+      window.addToast = function({ type='info', title='', message='', duration=6000 } = {}) {
+        return createToast({ type, title, message, duration });
+      };
+      window.toast = {
+        info:    (msg, t='Info', d=6000) => addToast({ type:'info',    title:t, message:msg, duration:d }),
+        success: (msg, t='Success', d=4000) => addToast({ type:'success', title:t, message:msg, duration:d }),
+        error:   (msg, t='Error', d=7000) => addToast({ type:'error',   title:t, message:msg, duration:d }),
+      };
+    })();
 
 </script>
 {% if messages %}

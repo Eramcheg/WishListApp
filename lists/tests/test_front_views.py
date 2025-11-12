@@ -232,12 +232,6 @@ class WishlistAccessTests(TestCase):
 
         self.wl = Wishlist.objects.create(owner=self.owner, title="Priv", is_public=False)
 
-    def test_owner_can_grant_view(self):
-        self.client.force_login(self.owner)
-        self.assertEqual(
-            WishlistAccess.objects.filter(wishlist=self.wl, user=self.alice, role="view").count(), 1
-        )
-
     def test_shared_can_view_public_page(self):
         WishlistAccess.objects.create(wishlist=self.wl, user=self.alice, role="view")
         url = reverse("public_wl_detail", args=[self.wl.slug])
@@ -312,10 +306,20 @@ class ItemAccessTests(TestCase):
             title="Old title",
             url="https://ex.com/old",
             slug="old-item",  # ensure you actually have a slug field
+            created_by=self.owner,
+        )
+
+        WishlistAccess.objects.create(wishlist=self.wl, user=self.editor, role="edit")
+
+        self.editors_item = Item.objects.create(
+            wishlist=self.wl,
+            title="Old title_by_editor",
+            url="https://ex.com/old_by_editor",
+            slug="old-item-by-editor",  # ensure you actually have a slug field
+            created_by=self.editor,
         )
 
         # grant roles
-        WishlistAccess.objects.create(wishlist=self.wl, user=self.editor, role="edit")
         WishlistAccess.objects.create(wishlist=self.wl, user=self.viewer, role="view")
 
     # ---------- UPDATE ----------
@@ -340,10 +344,10 @@ class ItemAccessTests(TestCase):
         self.assertEqual(self.item.title, "New title")
         self.assertEqual(self.item.url, "https://ex.com/new")
 
-    def test_editor_can_update_item(self):
+    def test_editor_can_update_own_item(self):
         self.client.force_login(self.editor)
         url = reverse(
-            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.editors_item.slug}
         )
         resp = self.client.post(
             url,
@@ -356,9 +360,27 @@ class ItemAccessTests(TestCase):
             follow=True,
         )
         self.assertEqual(resp.status_code, 200)
+        self.editors_item.refresh_from_db()
+        self.assertEqual(self.editors_item.title, "Edited by editor")
+        self.assertEqual(self.editors_item.url, "https://ex.com/editor")
+
+    def test_editor_cant_update_owners_item(self):
+        self.client.force_login(self.editor)
+        url = reverse(
+            "item_edit", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
+        )
+        resp = self.client.post(
+            url,
+            {
+                "url": "https://ex.com/editor",
+                "title": "Edited by editor",
+                "image_url": "",
+                "note": "",
+            },
+        )
+        self.assertEqual(resp.status_code, 404)
         self.item.refresh_from_db()
-        self.assertEqual(self.item.title, "Edited by editor")
-        self.assertEqual(self.item.url, "https://ex.com/editor")
+        self.assertNotEqual(self.item.title, "Should not change")
 
     def test_viewer_cannot_update_item(self):
         self.client.force_login(self.viewer)
@@ -406,15 +428,15 @@ class ItemAccessTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
 
-    def test_editor_can_delete_item(self):
+    def test_editor_cant_delete_owners_item(self):
         # only if your policy allows editors to delete; if not, expect 404 and keep the item
         self.client.force_login(self.editor)
         url = reverse(
             "item_delete", kwargs={"wishlist_slug": self.wl.slug, "item_slug": self.item.slug}
         )
-        resp = self.client.post(url, follow=True)
-        self.assertEqual(resp.status_code, 200)
-        self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(Item.objects.filter(pk=self.item.pk).exists())
 
     def test_viewer_cannot_delete_item(self):
         self.client.force_login(self.viewer)

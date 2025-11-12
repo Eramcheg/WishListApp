@@ -1,0 +1,20 @@
+{#   PARAMETERS   #}
+{#  : 'text' - this parameter will be shown as a bottom message  #}
+{#  : 'page_type' -  if equals to "edit page" it shows message for edit pages, otherwise it shows message for view pages#}
+<section class="text-center py-16 col-span-2">
+  <div class="mx-auto w-20 h-20 rounded-full bg-text/20 flex items-center justify-center">
+    <i data-lucide="folder-open" class="w-10 h-10 text-text"></i>
+  </div>
+  <h2 class="mt-6 text-xl font-semibold">It's empty here for now.</h2>
+  <p class="mt-2 text-muted max-w-md mx-auto">
+      {% if text %}
+          {{ text }}
+      {% else %}
+          {% if page_type == "edit_page" %}
+            Add the first item or change the filters to see the results.
+          {% else %}
+            Please wait until the owner adds something here.
+          {% endif %}
+      {% endif %}
+  </p>
+</section>

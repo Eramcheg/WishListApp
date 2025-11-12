@@ -8,13 +8,13 @@
   {% csrf_token %}
   <div class="form-field">
 
-      <label class="block text-sm text-gray-600">Links (One per line)</label>
+      <label class="block text-sm text-muted">Links (One per line)</label>
       <textarea name="urls_text" rows="10" class="area"
                 placeholder="https://example.com/item-1
 https://example.com/item-2
 https://example.com/item-3">{{ form.data.urls_text|default_if_none:'' }}</textarea>
 
-      <div class="text-sm text-gray-500">
+      <div class="text-sm text-muted">
         Hint: each line is a separate link. Empty lines are ignored. Duplicates are skipped.
       </div>
   </div>
@@ -25,14 +25,14 @@ https://example.com/item-3">{{ form.data.urls_text|default_if_none:'' }}</textar
 </form>
 
 {% if done %}
-  <div class="mt-6 p-3 rounded border bg-gray-50">
+  <div class="mt-6 p-3 rounded border bg-muted">
     <div class="font-medium">Created: {{ created }}, missed: {{ skipped }}</div>
   </div>
 
   <ul class="mt-4 space-y-1 text-sm">
     {% for ln, url, status, msg in results %}
       <li>
-        <span class="text-gray-500">#{{ ln }}</span>
+        <span class="text-muted">#{{ ln }}</span>
         <code class="px-1">{{ url }}</code>
         — {% if status == "ok" %}
             <span class="text-green-700">{{ msg }}</span>

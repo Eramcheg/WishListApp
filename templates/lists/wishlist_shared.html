@@ -8,16 +8,10 @@
 <ul class="space-y-2">
     {% for item in object.items.all %}
         <li class="bg-white p-3 shadow rounded">
-            {% if item.image_url %}
-                <img alt="{{ item.title }}" src="{{ item.image_url }}" class="w-16 h-16 mr-4">
-            {% endif %}
-            <span class="font-medium">{{ item.title }}</span>
-            {% if item.url %}
-                <a href="{{ item.url }}" class="btn-primary btn">🔗</a>
-            {% endif %}
+            {% include "partials/card_tile.html" with href=item.url image_url=item.image_url title=item.title subtitle=item.note actions=action_html%}
         </li>
     {% empty %}
-        <p>No items yet.</p>
+        {% include "partials/empty_state.html" %}
     {% endfor %}
 </ul>
 {% include "partials/pagination.html" %}

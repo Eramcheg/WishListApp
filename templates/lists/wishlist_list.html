@@ -13,17 +13,16 @@
 
   <ul class="space-y-3">
     {% for wl in object_list %}
-
       {% url 'wishlist_detail' wl.slug as wl_url %}
       {% url 'wishlist_edit'   wl.slug as edit_url %}
-      {% with action_html='<a href="'|add:edit_url|add:'" class="action">Edit</a>' %}
+      {% with action_html='<a href="'|add:edit_url|add:'" class="btn-secondary btn">Edit</a>' %}
           <li>
             {% include "partials/card_row.html" with href=wl_url icon="gift" title=wl.title subtitle=wl.description|default:"No description" meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
           </li>
       {% endwith %}
 
     {% empty %}
-      <p class="text-muted">No wishlists yet.</p>
+      {% include "partials/empty_state.html" with page_type='edit_page' %}
     {% endfor %}
   </ul>
 

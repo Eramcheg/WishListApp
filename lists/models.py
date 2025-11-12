@@ -97,6 +97,13 @@ class Wishlist(models.Model):
 
 class Item(models.Model):
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="wishlist_items_created",
+    )
     title = models.CharField(max_length=200, blank=False)
     url = models.URLField(blank=True, validators=[https_only])
     price_currency = models.CharField(max_length=10, blank=True)
@@ -139,7 +146,11 @@ class Item(models.Model):
         return self.wishlist.can_view(user)
 
     def can_edit(self, user) -> bool:
-        return self.wishlist.can_edit(user)
+        if not self.wishlist.can_edit(user):
+            return False
+        if user == self.wishlist.owner:
+            return True
+        return self.created_by_id == getattr(user, "id", None)
 
 
 class WishlistAccess(models.Model):

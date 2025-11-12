@@ -14,11 +14,11 @@
     <!-- CENTER -->
     <div class="item-main">
       {% if href %}
-        <a href="{{ href }}" class="item-title item-title-link truncate-1">
+        <a href="{{ href }}" class="item-title item-title-link {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">
           {{ title }}
         </a>
       {% else %}
-        <div class="item-title truncate-1">{{ title }}</div>
+        <div class="item-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
       {% endif %}
       {% if subtitle %}
         <div class="item-subtitle truncate-2">{{ subtitle }}</div>

@@ -22,24 +22,24 @@
 </form>
 
 <h3 class="font-semibold mb-2">Current coauthors</h3>
-<table class="w-full border text-sm">
+<table class="table table-striped table-hover rounded-md overflow-hidden border border-border">
   <thead>
-    <tr class="bg-gray-100">
-      <th class="text-left p-2">User</th>
-      <th class="text-left p-2">Role</th>
-      <th class="p-2"></th>
+    <tr>
+      <th>User</th>
+      <th>Role</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
   {% for acc in accesses %}
     <tr class="border-t">
-      <td class="p-2">{{ acc.user.username }} <span class="text-gray-500">{{ acc.user.email }}</span></td>
-      <td class="p-2">{{ acc.get_role_display }}</td>
-      <td class="p-2 text-right">
+      <td>{{ acc.user.username }} <span class="text-muted">{{ acc.user.email }}</span></td>
+      <td>{{ acc.get_role_display }}</td>
+      <td>
         <form method="post" style="display:inline">
           {% csrf_token %}
           <input type="hidden" name="revoke_user_id" value="{{ acc.user.id }}">
-          <button class="text-red-600">Remove</button>
+          <button class="text-btn-danger">Remove</button>
         </form>
       </td>
     </tr>

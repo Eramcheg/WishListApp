@@ -57,7 +57,7 @@ friends_tabs = []
 class WishlistListView(ListView):
     model = Wishlist
     template_name = "lists/wishlist_list.html"
-    paginate_by = 7
+    paginate_by = 8
 
     ORDERING_MAP = {
         "created": "created_at",
@@ -87,15 +87,27 @@ class WishlistListView(ListView):
 class SharedWithMeListView(LoginRequiredMixin, ListView):
     template_name = "lists/wishlists_shared_with_user.html"
     context_object_name = "wishlists"
-    paginate_by = 20
+    paginate_by = 8
+    ORDERING_MAP = {
+        "created": "created_at",
+        "-created": "-created_at",
+        "title": "title",
+        "-title": "-title",
+    }
 
     def get_queryset(self):
-        return (
+        qs = (
             Wishlist.objects.filter(accesses__user=self.request.user)
             .select_related("owner")
             .order_by("-last_viewed_at", "title")
             .distinct()
         )
+        q = self.request.GET.get("q")
+        sort = self.request.GET.get("sort", "-created")
+        order_by = self.ORDERING_MAP.get(sort, "-created_at")
+        if q:
+            qs = qs.filter(title__icontains=q)
+        return qs.order_by(order_by)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -319,6 +331,7 @@ class ItemCreateView(LoginRequiredMixin, PolicyCheckMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.wishlist = self.wishlist
+        form.instance.created_by = self.request.user
         try:
             obj = form.save(commit=False)
             obj._last_actor = self.request.user
