@@ -1,9 +1,134 @@
-{% extends "base.html" %}
-{% block title %}Register{% endblock %}
-{% block content %}
-<h2 class="text-2xl font-bold mb-4">Register</h2>
-<form method="post" class="space-y-3">{% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Sign up</button>
-</form>
+{% extends "registration/base_auth.html" %}
+
+{% block page_title %}Sign up{% endblock %}
+
+{% block auth_header %}
+  <div class="mb-6">
+    <h2 class="text-xl text-center font-semibold">Create your account</h2>
+    <p class="text-sm text-muted mt-1">
+      It only takes a moment — you can change details later.
+    </p>
+  </div>
+{% endblock %}
+
+{% block form %}
+  <form method="post" action="{% url 'register' %}" class="space-y-4" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-error mb-2">
+        <div class="alert-desc">
+          {{ form.non_field_errors|join:", " }}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Username -->
+    <div class="form-field with-icon">
+      <label for="id_username" class="form-label">Username</label>
+      <div class="with-icon">
+          <span class="icon-left">
+            <i data-lucide="at-sign" class="w-6 h-6"></i>
+          </span>
+          <input
+            id="id_username"
+            name="username"
+            type="text"
+            class="inp-text pl-icon {% if form.username.errors %}is-invalid{% endif %}"
+            autocomplete="username"
+            value="{{ form.username.value|default_if_none:'' }}"
+          >
+      </div>
+      <p class="form-hint">This will be your public handle.</p>
+      {% if form.username.errors %}
+        <p class="form-error">{{ form.username.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <!-- Email -->
+    <div class="form-field">
+      <label for="id_email" class="form-label">Email</label>
+
+      <div class="with-icon">
+        <span class="icon-left">
+          <i data-lucide="mail" class="w-6 h-6"></i>
+        </span>
+        <input
+          id="id_email"
+          name="email"
+          type="email"
+          class="inp-text pl-icon {% if form.email.errors %}is-invalid{% endif %}"
+          autocomplete="email"
+          value="{{ form.email.value|default_if_none:'' }}"
+        >
+      </div>
+
+      {% if form.email.errors %}
+        <p class="form-error">{{ form.email.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Password 1 -->
+    <div class="form-field with-icon">
+      <label for="id_password1" class="form-label">Password</label>
+      <div class="with-icon">
+          <input
+            id="id_password1"
+            name="password1"
+            type="password"
+            class="inp-pass pr-icon {% if form.password1.errors %}is-invalid{% endif %}"
+            autocomplete="new-password"
+          >
+          <button
+            type="button"
+            class="icon-right"
+            aria-label="Show password"
+            onclick="togglePwd('id_password1', this)"
+          >
+            <i data-lucide="eye" class="w-6 h-6"></i>
+          </button>
+      </div>
+      <p class="form-hint">At least 8 characters.</p>
+      {% if form.password1.errors %}
+        <p class="form-error">{{ form.password1.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Password 2 -->
+    <div class="form-field">
+      <label for="id_password2" class="form-label">Confirm password</label>
+      <div class="with-icon">
+          <input
+            id="id_password2"
+            name="password2"
+            type="password"
+            class="inp-pass pr-icon {% if form.password2.errors %}is-invalid{% endif %}"
+            autocomplete="new-password"
+          >
+          <button
+            type="button"
+            class="icon-right"
+            aria-label="Show password"
+            onclick="togglePwd('id_password2', this)"
+          >
+            <i data-lucide="eye" class="w-6 h-6"></i>
+          </button>
+      </div>
+      {% if form.password2.errors %}
+        <p class="form-error">{{ form.password2.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <button class="btn btn-primary w-full mt-2">
+      Sign up
+    </button>
+  </form>
+{% endblock %}
+
+{% block auth_footer %}
+  <p class="text-sm text-muted mt-4 text-center">
+    Already have an account?
+    <a href="{% url 'login' %}" class="text-accent hover:opacity-90">
+      Log in
+    </a>
+  </p>
 {% endblock %}

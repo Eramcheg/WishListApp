@@ -221,6 +221,15 @@
   }
   .thumb img { @apply w-full h-full object-cover; }
 
+  .rounded-1{
+    border-radius: 0.5rem;
+  }
+  .rounded-2{
+    border-radius: 0.75rem;
+  }
+  .rounded-3{
+    border-radius: 1rem;
+  }
 
 
   /* ---------- ВЕРТИКАЛЬНАЯ КАРТОЧКА (TOP | CENTER | BOTTOM) ---------- */
@@ -342,5 +351,14 @@
   }
   .table-compact th, .table-compact td {
     @apply py-1 px-2 text-xs;
+  }
+
+
+
+
+
+  /*  Different style  */
+  .max-w-7xl {
+    max-width: var(--container-7xl);
   }
 }

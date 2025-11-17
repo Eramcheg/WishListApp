@@ -35,13 +35,14 @@
         </div>
     </nav>
 
-
-    <!-- PAGE CONTENT -->
+  {% block body %}
     <main class="max-w-6xl mx-auto px-4">
         <div class="max-w-6xl mx-auto px-4 py-6">
           {% block content %}{% endblock %}
         </div>
     </main>
+  {% endblock %}
+
 
     {% include "partials/sidebar.html" %}
     <div id="toast-root" class="toast-wrap" aria-live="polite" aria-atomic="true"></div>

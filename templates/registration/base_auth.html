@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% block page_title %}Auth{% endblock %}{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-bg text-text">
+  <div class="grid min-h-screen bg-bg  max-w-7xl mx-auto lg:grid-cols-2 p-3 rounded-2 border-bg-secondary">
+
+    <aside class="relative  lg:block border-r border-border overflow-hidden rounded-2">
+      <img
+        src="{% static 'img/gift_backg.avif' %}"
+        alt="Wishlist illustration"
+        class="absolute inset-0 h-full w-full rounded-1 object-cover rounded-2"
+      >
+      <div class="absolute inset-0 bg-text-muted/60 rounded-2" ></div>
+
+      <div class="relative z-10 flex h-full py-8 rounded-2">
+        <div class="px-10">
+          <h1 class="text-3xl font-bold text-bg mb-3">
+            WishList
+          </h1>
+          <p class="text-sm text-bg">
+            Organize and share your gift ideas in one place.
+          </p>
+
+          {# Здесь потом можно сделать слайдер: просто добавишь блок слайдов #}
+{#           <div class="mt-6 space-y-2">#}
+{#               слайды / подсказки / преимущества сервиса#}
+{#             </div> #}
+        </div>
+      </div>
+    </aside>
+
+    {# ПРАВАЯ КОЛОНКА: auth-форма (login / register) #}
+    <main class="flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
+      <div class="w-full max-w-md rounded-2xl p-6 sm:p-8">
+        {% block auth_header %}{% endblock %}
+        {% block form %}{% endblock %}
+        {% block auth_footer %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.setAttribute("aria-pressed", show ? "true" : "false");
+    if (window.lucide) {
+      btn.innerHTML = show
+        ? '<i data-lucide="eye-off" class="w-6 h-6"></i>'
+        : '<i data-lucide="eye" class="w-6 h-6"></i>';
+      lucide.createIcons();
+    }
+  }
+</script>
+{% endblock %}

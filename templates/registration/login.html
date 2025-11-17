@@ -1,9 +1,100 @@
-{% extends "base.html" %}
-{% block title %}Login{% endblock %}
-{% block content %}
-<h2 class="text-2xl font-bold mb-4">Login</h2>
-<form method="post" class="space-y-3">{% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Sign in</button>
-</form>
+{% extends "registration/base_auth.html" %}
+
+{% block page_title %}Log in{% endblock %}
+
+{% block auth_header %}
+  <div class="mb-6">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-semibold">Welcome back</h2>
+        <p class="text-sm text-muted mt-1">
+          Log in to manage your wishlists.
+        </p>
+      </div>
+      <a href="{% url 'password_reset' %}" class="text-xs sm:text-sm text-accent hover:opacity-90">
+        Forgot password?
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block form %}
+  <form method="post" action="{% url 'login' %}" class="space-y-4" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-error mb-2">
+        <div class="alert-desc">
+          {{ form.non_field_errors|join:", " }}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Username -->
+    <div class="form-field">
+      <label for="id_username" class="form-label">Username</label>
+
+      <div class="with-icon">
+        <span class="icon-left">
+          <i data-lucide="user" class="w-6 h-6"></i>
+        </span>
+        <input
+          id="id_username"
+          name="username"
+          type="text"
+          class="inp-text pl-icon"
+          autocomplete="username"
+        >
+      </div>
+    </div>
+    <!-- Password -->
+    <div class="form-field">
+      <label for="id_password" class="form-label">Password</label>
+
+      <div class="with-icon">
+        <input
+          id="id_password"
+          name="password"
+          type="password"
+          class="inp-pass pr-icon"
+          autocomplete="current-password"
+        >
+        <button
+          type="button"
+          class="icon-right"
+          aria-label="Show password"
+          onclick="togglePwd('id_password', this)"
+        >
+          <i data-lucide="eye" class="w-6 h-6"></i>
+        </button>
+      </div>
+      {% if form.password.errors %}
+        <p class="form-error">{{ form.password.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Remember + дубль "Forgot" на мобиле -->
+    <div class="flex items-center justify-between text-sm">
+      <label class="chk-row flex items-center gap-2">
+        <input type="checkbox" name="remember" class="chk">
+        <span>Remember me</span>
+      </label>
+      <a href="{% url 'password_reset' %}" class="text-accent hover:opacity-90 sm:hidden">
+        Forgot?
+      </a>
+    </div>
+
+    <button class="btn btn-primary w-full mt-2">
+      Log in
+    </button>
+  </form>
+{% endblock %}
+
+{% block auth_footer %}
+  <p class="text-sm text-muted mt-4 text-center">
+    Don’t have an account?
+    <a href="{% url 'register' %}" class="text-accent hover:opacity-90">
+      Sign up
+    </a>
+  </p>
 {% endblock %}
