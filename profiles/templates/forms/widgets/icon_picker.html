@@ -1,0 +1,62 @@
+{# widgets/icon_picker.html #}
+<div class="icon-picker relative" data-icon-picker>
+
+    <input
+        type="hidden"
+        name="{{ widget.name }}"
+        value="{{ widget.value|default_if_none:'' }}"
+        {% include "django/forms/widgets/attrs.html" %}
+        data-icon-input
+    >
+
+    <button
+    type="button"
+    class="btn-secondary btn"
+    data-icon-open
+    >
+        <span>Choose icon - </span>
+        <span class="icon-preview flex items-center justify-center w-6 h-6" data-icon-preview>
+          {% if widget.value %}
+            <i data-lucide="{{ widget.value }}"></i>
+          {% else %}
+            <i data-lucide="image"></i> {# иконка по умолчанию #}
+          {% endif %}
+        </span>
+    </button>
+
+    {# Модалка #}
+    <div
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40"
+    data-icon-modal-backdrop
+    >
+        <div
+          class="bg-white w-full max-w-md h-[80vh] sm:h-[480px] rounded-none sm:rounded-2xl shadow-xl
+                 flex flex-col overflow-hidden m-auto"
+        >
+          <!-- Header -->
+          <div class="px-4 py-3 border-b flex items-center justify-between">
+            <h2 class="text-sm font-semibold">Choose icon</h2>
+            <button type="button" class="p-1" data-icon-close>
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+
+          <!-- Поиск -->
+          <div class="p-3 border-b">
+            <input
+              type="text"
+              placeholder="Поиск по названию..."
+              class="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              data-icon-search
+            >
+          </div>
+
+          <!-- Сетка иконок -->
+          <div class="flex-1 overflow-y-auto p-3">
+            <div class="grid grid-cols-5 gap-2 text-gray-700 text-xs" data-icon-grid>
+              {# здесь JS вставит список иконок #}
+            </div>
+          </div>
+        </div>
+    </div>
+</div>

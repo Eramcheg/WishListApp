@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+    {% include "partials/tabs.html" with tabs=tabs active="profile" aria_label="My profile" %}
+    <div class="max-w-5xl mx-auto py-10 space-y-8">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold tracking-tight">Profile</h1>
+          <p class="text-sm text-muted-foreground">
+            This is your personal profile. You can change how you look across wishlists here.
+          </p>
+        </div>
+        {# Можно добавить кнопку "View public profile" #}
+        <a
+          href="{% url 'public_profile' user.username %}"
+          class="btn-secondary btn"
+        >
+          View public profile
+        </a>
+      </div>
+
+      <div class="grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)] items-start">
+        <section class="rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 class="text-sm font-medium text-muted-foreground mb-4">Preview</h2>
+
+          <div class="flex items-start gap-4">
+            <div class="relative h-16 w-16 rounded-full overflow-hidden bg-muted flex items-center justify-center text-2xl">
+              {% if profile.avatar %}
+                <img
+                  src="{{ profile.avatar.url }}"
+                  alt="{{ profile.display_name|default:user.username }} avatar"
+                  class="h-full w-full object-cover"
+                >
+              {% else %}
+                <span>
+                  {% if profile.icon %}
+                    <i data-lucide="{{ profile.icon }}" class="w-7 h-7"></i>
+                  {% else %}
+                    {{ user.username|first|upper }}
+                  {% endif %}
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-semibold">
+                  {{ profile.display_name|default:user.username }}
+                </h3>
+                {% if profile.icon %}
+                  <span class="text-xl"><i data-lucide="{{ profile.icon }}" class="w-4 h-4"></i></span>
+                {% endif %}
+              </div>
+              <p class="text-sm text-muted-foreground">
+                @{{ user.username }}
+              </p>
+
+              {% if profile.bio %}
+                <p class="mt-3 text-sm leading-relaxed">
+                  {{ profile.bio }}
+                </p>
+              {% else %}
+                <p class="mt-3 text-sm text-muted-foreground italic">
+                  You haven't written a bio yet.
+                </p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mt-6 border-t pt-4 text-xs text-muted-foreground">
+            Member since {{ user.date_joined|date:"F Y" }}
+          </div>
+        </section>
+
+        <section class="rounded-2xl border bg-card p-6 shadow-sm">
+          <h2 class="text-sm font-medium text-muted-foreground mb-4">Edit profile</h2>
+
+          <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Display name -->
+            <div class="form-field">
+              {{ form.display_name.label_tag }} {{ form.display_name|add_class:"inp-text" }}
+              {% if form.display_name.errors %}
+                <p class="text-xs text-destructive mt-1">
+                  {{ form.display_name.errors|striptags }}
+                </p>
+              {% else %}
+                <p class="text-xs text-muted-foreground">
+                  This name will be shown on your public profile.
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Bio -->
+            <div class="form-field">
+              {{ form.bio.label_tag }} {{ form.bio|add_class:"area" }}
+              {% if form.bio.errors %}
+                <p class="text-xs text-destructive mt-1">
+                  {{ form.bio.errors|striptags }}
+                </p>
+              {% else %}
+                <p class="text-xs text-muted-foreground">
+                  You can mention your interests, occasions you care about, etc.
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Icon -->
+            <div class="form-field">
+              <label class="text-sm font-medium" for="id_icon">Icon / emoji</label>
+              {{ form.icon }}
+              {% if form.icon.errors %}
+                <p class="text-xs text-destructive mt-1">
+                  {{ form.icon.errors|striptags }}
+                </p>
+              {% else %}
+                <p class="text-xs text-muted-foreground">
+                  Optional small emoji, shown next to your name and in lists.
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Avatar -->
+            <div class="form-field">
+              <label class="text-sm font-medium" for="id_avatar">Avatar</label>
+              <input
+                type="file"
+                name="avatar"
+                id="id_avatar"
+                accept="image/*"
+                class="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-secondary/80"
+              >
+              {% if form.avatar.errors %}
+                <p class="text-xs text-destructive mt-1">
+                  {{ form.avatar.errors|striptags }}
+                </p>
+              {% else %}
+                <p class="text-xs text-muted-foreground">
+                  JPG, PNG or WEBP. Square images work best.
+                </p>
+              {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Save changes
+            </button>
+
+          </form>
+        </section>
+      </div>
+    </div>
+{% endblock %}

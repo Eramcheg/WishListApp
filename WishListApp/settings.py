@@ -34,6 +34,7 @@ ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "accounts",
+    "profiles",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -60,6 +61,7 @@ MIDDLEWARE = [
 CSRF_FAILURE_VIEW = "lists.views.csrf_failure"
 ROOT_URLCONF = "WishListApp.urls"
 
+TEMPLATE_DIRS = (os.path.join(BASE_DIR, "templates"),)
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",

@@ -25,6 +25,7 @@ from rest_framework.routers import DefaultRouter
 
 from lists.sitemaps import PublicWishlistSitemap
 from lists.views import ItemViewSet, WishlistViewSet
+from profiles.views import PublicProfileView
 
 router = DefaultRouter()
 router.register(r"wishlists", WishlistViewSet, basename="wishlist")
@@ -48,6 +49,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("accounts/", include("accounts.urls")),
+    path("profile/", include("profiles.urls")),
+    path("u/<str:username>/", PublicProfileView.as_view(), name="public_profile"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
     path("wishlists/", include("lists.urls_front")),

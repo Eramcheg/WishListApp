@@ -34,7 +34,7 @@
 }
 
 @utility inp {
-  @apply w-full bg-bg-secondary text-text placeholder:text-muted
+  @apply w-full bg-bg-secondary text-text placeholder-text/60
          border border-border rounded-md
          px-3 py-2
          outline-none transition
@@ -66,6 +66,9 @@
   }
   .text-btn-danger{
     @apply text-error hover:underline cursor-pointer;
+  }
+  .text-btn{
+    @apply hover:underline cursor-pointer;
   }
 
   .btn-xsm { @apply px-2 py-1 text-sm; }
