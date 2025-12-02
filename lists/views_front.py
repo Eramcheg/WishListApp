@@ -706,9 +706,13 @@ class WishlistAccessManageView(LoginRequiredMixin, View):
         wl = self.get_wishlist(request, slug)
         form = ShareAccessForm()
         accesses = wl.accesses.select_related("user").all().order_by("user__username")
-        return render(
-            request, self.template_name, {"object": wl, "form": form, "accesses": accesses}
-        )
+        context = {
+            "object": wl,
+            "form": form,
+            "accesses": accesses,
+            "cancel_url": reverse("wishlist_detail", kwargs={"slug": wl.slug}),
+        }
+        return render(request, self.template_name, context)
 
     def post(self, request, slug):
         wl = self.get_wishlist(request, slug)
