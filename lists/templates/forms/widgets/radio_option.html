@@ -1,0 +1,12 @@
+{# templates/forms/widgets/radio_option.html #}
+<label class="flex items-center gap-2 cursor-pointer text-sm">
+  <input
+    type="{{ widget.type }}"
+    name="{{ widget.name }}"
+    value="{{ widget.value|stringformat:'s' }}"
+    id="{{ widget.attrs.id }}"
+    class="radio align-middle"
+    {% include "django/forms/widgets/attrs.html" %}
+  >
+  <span>{{ widget.label }}</span>
+</label>

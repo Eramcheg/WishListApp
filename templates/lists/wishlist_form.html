@@ -20,6 +20,19 @@
           <div class="text-red-600 text-sm">{{ error }}</div>
         {% endfor %}
     </div>
+    <div class="form-field">
+      <label class="text-sm font-medium" for="id_icon">Icon / emoji</label>
+      {{ form.icon }}
+      {% if form.icon.errors %}
+        <p class="text-xs text-destructive mt-1">
+          {{ form.icon.errors|striptags }}
+        </p>
+      {% else %}
+        <p class="text-xs text-muted-foreground">
+          Optional small emoji, shown as wishlist cover.
+        </p>
+      {% endif %}
+    </div>
     <div class="mb-3 form-field">
         {{ form.description.label_tag }} {{ form.description|add_class:"area" }}
         {% for error in form.description.errors %}

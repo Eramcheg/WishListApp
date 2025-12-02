@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% block settings_tabs %}{% endblock %}
+    <div class="max-w-5xl mx-auto py-10 grid gap-8">
+    <section class="space-y-6">
+      {% block settings_content %}
+      {% endblock %}
+    </section>
+    </div>
+{% endblock %}

@@ -38,6 +38,12 @@ class Wishlist(models.Model):
     share_token = models.CharField(max_length=32, blank=True, null=True, unique=True)
     slug = models.SlugField(max_length=180, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    icon = models.CharField(
+        max_length=16,
+        blank=True,
+        help_text="Small icon that can be used as wishlist cover.",
+        default="gift",
+    )
 
     public_view_count = models.PositiveIntegerField(default=0)
     last_viewed_at = models.DateTimeField(null=True, blank=True)

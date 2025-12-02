@@ -1,0 +1,26 @@
+<div class="py-3 border-b last:border-b-0">
+  <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
+    <!-- Левая часть: название и описание -->
+    <div class="md:max-w-md">
+      <h3 class="text-sm font-medium text-text">
+        {{ label }}
+      </h3>
+      {% if description %}
+        <p class="text-xs text-muted mt-1">
+          {{ description }}
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- Правая часть: сам контрол -->
+    <div class="md:text-right">
+      {{ field }}
+
+      {% if field.errors %}
+        <p class="text-xs text-error mt-1">
+          {{ field.errors|striptags }}
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>

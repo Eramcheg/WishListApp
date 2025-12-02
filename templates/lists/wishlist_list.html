@@ -17,7 +17,7 @@
       {% url 'wishlist_edit'   wl.slug as edit_url %}
       {% with action_html='<a href="'|add:edit_url|add:'" class="btn-secondary btn">Edit</a>' %}
           <li>
-            {% include "partials/card_row.html" with href=wl_url icon="gift" title=wl.title subtitle=wl.description|default:"No description" meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
+            {% include "partials/card_row.html" with href=wl_url icon=wl.icon title=wl.title subtitle=wl.description|default:"No description" meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
           </li>
       {% endwith %}
 

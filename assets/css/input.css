@@ -129,7 +129,14 @@
   .chk-lg { @apply h-6 w-6; }
 
   .chk-row { @apply flex items-center gap-2; }
+  .radio {
+    @apply h-4 w-4 rounded-full border border-border bg-bg-secondary cursor-pointer;
+    accent-color: var(--color-accent);
+  }
 
+  .radio-row {
+    @apply flex items-center gap-2;
+  }
   .tabs {
     @apply border-b border-border mb-4 overflow-x-auto;
   }

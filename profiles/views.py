@@ -4,9 +4,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
-from django.views.generic import TemplateView, UpdateView
+from django.views.generic import DetailView, TemplateView, UpdateView
 
-from profiles.forms import ProfileForm
+from lists.models import Wishlist
+from profiles.forms import PrivacyForm, ProfileForm
 from profiles.models import Profile
 
 User = get_user_model()
@@ -14,10 +15,16 @@ User = get_user_model()
 profile_tabs = [
     {"key": "profile", "label": "Profile", "url": reverse_lazy("profile_root"), "icon": "user-cog"},
     {
-        "key": "shared",
-        "label": "Shared",
+        "key": "general",
+        "label": "General settings",
         "url": reverse_lazy("wishlists_shared_with_me"),
-        "icon": "share-2",
+        "icon": "settings",
+    },
+    {
+        "key": "privacy",
+        "label": "Privacy settings",
+        "url": reverse_lazy("privacy_settings"),
+        "icon": "shield",
     },
 ]
 
@@ -47,8 +54,33 @@ class SettingsView(LoginRequiredMixin, TemplateView):
     template_name = "profiles/settings.html"
     # позже: тема, язык и т.п.
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["user"] = self.request.user
+        ctx["tabs"] = profile_tabs
+        return ctx
 
-class PublicProfileView(TemplateView):
+
+class PrivacySettingsView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    form_class = PrivacyForm
+    template_name = "profiles/privacy_settings.html"
+    context_object_name = "profile"
+
+    def get_object(self, queryset=None):
+        return self.request.user.profile
+
+    def get_success_url(self):
+        return reverse_lazy("privacy_settings")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["user"] = self.request.user
+        ctx["tabs"] = profile_tabs
+        return ctx
+
+
+class PublicProfileView(LoginRequiredMixin, DetailView):
     """
     /u/<username>/ — публичный профиль, может быть виден всем
     """
@@ -67,3 +99,12 @@ class PublicProfileView(TemplateView):
             raise Http404("This profile is private.")
 
         return profile
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = self.object  # то же самое, что self.get_object()
+
+        public_wishlists = Wishlist.objects.filter(owner=profile.user, is_public=True)
+
+        context["public_wishlists"] = public_wishlists
+        return context

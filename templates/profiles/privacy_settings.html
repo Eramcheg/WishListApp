@@ -1,0 +1,38 @@
+{% extends "profiles/settings_base.html" %}
+{% block settings_tabs%}
+    {% include "partials/tabs.html" with tabs=tabs active="privacy" aria_label="Privacy settings" %}
+{% endblock %}
+
+{% block settings_content %}
+  <h1 class="text-xl font-semibold mb-2">Privacy</h1>
+  <p class="text-sm text-muted-foreground mb-6">
+    Control how your profile and birthday are shown to others.
+  </p>
+
+  <form method="post" class="space-y-2">
+    {% csrf_token %}
+      <section class="space-y-2">
+        <h2 class="text-sm font-semibold text-muted-foreground">
+          Profile
+        </h2>
+        <div>
+          {% include "partials/settings_row.html" with label="Profile visibility" description="Control who can see your profile page." field=form.is_public %}
+        </div>
+      </section>
+
+      <section class="space-y-2">
+        <h2 class="text-sm font-semibold text-muted-foreground">
+          Birthday
+        </h2>
+        <div>
+          {% include "partials/settings_row.html" with label="Birthday visibility" description="How your birthday is shown on your public profile." field=form.birth_date_visibility %}
+        </div>
+      </section>
+
+      <div class="pt-2">
+        <button type="submit" class="btn btn-primary">
+          Save changes
+        </button>
+      </div>
+  </form>
+{% endblock %}

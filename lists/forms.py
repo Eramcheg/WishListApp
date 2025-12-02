@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 from django.utils.html import strip_tags
 
+from common.widgets import IconPickerWidget
+
 from .models import Item, Wishlist, WishlistAccess
 
 User = get_user_model()
@@ -45,12 +47,15 @@ def sanitize_description(text: str) -> str:
 class WishlistForm(forms.ModelForm):
     class Meta:
         model = Wishlist
-        fields = ["title", "description", "is_public"]
+        fields = ["title", "icon", "description", "is_public"]
         error_messages = {
             "title": {
                 "required": "Title is required.",
                 "max_length": "The title can contain up to 160 characters.",
             }
+        }
+        widgets = {
+            "icon": IconPickerWidget(),
         }
 
     def clean_title(self):
