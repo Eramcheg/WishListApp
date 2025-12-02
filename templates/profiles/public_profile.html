@@ -2,7 +2,7 @@
 
 {% block content %}
 {{ profile }}
-<div class="max-w-3xl mx-auto py-10 space-y-8">
+<div class="max-w-6xl mx-auto py-10 space-y-8">
 
   <!-- Header профиля -->
   <header class="rounded-2xl border bg-card/80 backdrop-blur-sm p-6 shadow-sm flex gap-4">
@@ -25,7 +25,6 @@
       {% endif %}
     </div>
 
-    <!-- Основная информация -->
     <div class="flex-1 space-y-2">
       <div class="flex items-center gap-2">
         <span class="text-xl font-semibold">
@@ -62,7 +61,6 @@
     </div>
   </header>
 
-  <!-- Блок под “статы” и детали (пока очень простой) -->
   <section class="rounded-2xl bg-card p-5 text-sm text-muted-foreground space-y-2">
     <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
       About
@@ -79,17 +77,15 @@
       {# позже можно добавить “View all” #}
     </div>
 
-    {# Пока заглушка, позже заменишь реальными карточками вишлистов #}
-
       <ul
           id="tile-grid"
-          class="grid gap-3 sm:grid-cols-2 lg:grid-cols-2"
+          class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
           aria-busy="false"
         >
           {% for wl in public_wishlists %}
             {% url 'public_wl_detail' wl.slug as wl_url %}
                 <li>
-                  {% include "partials/card_tile.html" with href=wl_url title_link=True icon="gift" title=wl.title subtitle=wl.description|default:"No description yet" %}
+                  {% include "partials/card_tile.html" with href=wl_url redirect_show_btn=True title_link=True icon=wl.icon title=wl.title subtitle=wl.description|default:"No description yet" %}
                 </li>
           {% empty %}
             {% include "partials/empty_state.html" with page_type='public_profile' %}

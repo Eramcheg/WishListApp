@@ -457,13 +457,14 @@ class BulkAddView(LoginRequiredMixin, FormView):
                         title=title,
                         image_url=image_url,
                         note="",
+                        created_by=self.request.user,
                     )
                 existing_urls.add(url)
                 created += 1
                 results.append((lineno, url, "ok", "Created"))
             except Exception as e:
                 skipped += 1
-                results.append((lineno, url, "error", f"Ошибка сохранения: {e}"))
+                results.append((lineno, url, "error", f"Error while saving: {e}"))
         for lineno, bad, msg in parse_errors:
             results.append((lineno, bad, "error", msg))
             skipped += 1
@@ -652,6 +653,7 @@ class ImportMapView(LoginRequiredMixin, FormView):
                         title=title,
                         image_url=image_url,
                         note=note,
+                        created_by=self.request.user,
                     )
                 existing_urls.add(url)
                 created += 1

@@ -22,8 +22,14 @@
                 <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
             {% endif %}
             {% if subtitle %}
-                <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}"
-                     data-truncate data-lines="1" data-more="Show more" data-less="Show less">{{ subtitle }}</div>
+                {% if redirect_show_btn %}
+                    <div class="vcard-subtitle truncate-1"
+                         >{{ subtitle }}</div>
+                    <a href="{{ href }}" class="truncate-toggle">Read more</a>
+                {% else %}
+                    <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}"
+                         data-truncate data-lines="1" data-more="Show more" data-less="Show less">{{ subtitle }}</div>
+                {% endif %}
             {% endif %}
         </div>
 
