@@ -22,7 +22,7 @@
           <div class="flex items-center gap-6">
 
             {% if user.is_authenticated %}
-              <span class="opacity-90">Hi, {{ user.username }}</span>
+              <span class="opacity-90">Hi, {{ user.profile.display_name|default:user.username }}</span>
 
             {% else %}
               <a href="{% url 'login' %}" class="hover:opacity-90 mr-2">Login</a>

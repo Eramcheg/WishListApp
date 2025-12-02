@@ -51,6 +51,13 @@
                   <span class="text-xl"><i data-lucide="{{ profile.icon }}" class="w-4 h-4"></i></span>
                 {% endif %}
               </div>
+              {% with bday=profile.get_public_birthdate_display %}
+                {% if bday %}
+                  <p class="text-sm text-muted-foreground">
+                    {{ bday }}
+                  </p>
+                {% endif %}
+              {% endwith %}
               <p class="text-sm text-muted-foreground">
                 @{{ user.username }}
               </p>
@@ -105,7 +112,19 @@
                 </p>
               {% endif %}
             </div>
-
+            <div class="form-field">
+                <label class="text-sm font-medium" for="id_icon">Birth date</label>
+                {{ form.birth_date|add_class:"inp" }}
+                {% if form.birth_date.errors %}
+                  <p class="text-xs text-destructive">
+                    {{ form.birth_date.errors|striptags }}
+                  </p>
+                {% else %}
+                  <p class="text-xs text-muted-foreground">
+                    Your date of birth (optional).
+                  </p>
+                {% endif %}
+            </div>
             <!-- Icon -->
             <div class="form-field">
               <label class="text-sm font-medium" for="id_icon">Icon / emoji</label>

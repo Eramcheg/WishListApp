@@ -1,24 +1,26 @@
-<div class="vcard card-tile-loader is-loading" id="card-{{ forloop.counter0 }}">
-
+<div class="vcard card-tile-loader {% if image_url %}is-loading{% endif %}" id="card-{{ forloop.counter0 }}">
     <div>
         <div class="vcard-top relative">
+          {% if image_url %}
+            <img src="{{ image_url }}" alt="" class="vcard-img opacity-0 transition-opacity duration-300"
+                 loading="lazy"
+                 onload="this.closest('.card-tile-loader').classList.remove('is-loading'); this.classList.remove('opacity-0'); this.classList.add('opacity-100');"
+                 onerror="this.closest('.card-tile-loader').classList.remove('is-loading'); this.style.display='none';">
 
-            {% if image_url %}
-                <img src="{{ image_url }}" alt="" class="vcard-img opacity-0 transition-opacity duration-300" loading="lazy"
-                     onload="this.closest('.card-tile-loader').classList.remove('is-loading'); this.classList.remove('opacity-0'); this.classList.add('opacity-100');"
-                     onerror="this.closest('.card-tile-loader').classList.remove('is-loading'); this.style.display='none';">
-
-                <div class="image-skeleton absolute inset-0 {{ image_url|yesno:'skeleton-img-block,' }}"></div>
-
-            {% else %}
-                <div class="absolute inset-0 flex items-center justify-center text-muted">
-                    {% if icon %}<i data-lucide="{{ icon }}" class="w-8 h-8"></i>{% endif %}
-                </div>
-            {% endif %}
+            <div class="image-skeleton absolute inset-0 {{ image_url|yesno:'skeleton-img-block,' }}"></div>
+          {% else %}
+            <div class="absolute inset-0 flex items-center justify-center text-muted">
+              {% if icon %}<i data-lucide="{{ icon }}" class="w-8 h-8"></i>{% endif %}
+            </div>
+          {% endif %}
         </div>
 
         <div class="vcard-body">
-            <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
+            {% if title_link == True %}
+                <a href="{{ href }}" class="vcard-title group text-muted hover:text-accent transition {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</a>
+            {% else %}
+                <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
+            {% endif %}
             {% if subtitle %}
                 <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}"
                      data-truncate data-lines="1" data-more="Show more" data-less="Show less">{{ subtitle }}</div>
@@ -26,9 +28,11 @@
         </div>
 
         <div class="vcard-bottom">
-            <a href="{{ href }}" class="group text-muted hover:text-accent transition">
-                <i data-lucide="link" class="w-6 h-6"></i>
-            </a>
+            {% if title_link != True %}
+                <a href="{{ href }}" class="group text-muted hover:text-accent transition">
+                    <i data-lucide="link" class="w-6 h-6"></i>
+                </a>
+            {% endif %}
             <div class="flex items-center gap-2">
                 {% if badges %}
                     {% for b in badges %}<span class="badge">{{ b.text }}</span>{% endfor %}

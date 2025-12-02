@@ -40,12 +40,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "lists",
     "rest_framework",
     "drf_spectacular",
     "django.contrib.sites",
     "django.contrib.sitemaps",
     "widget_tweaks",
+    "lists",
 ]
 
 MIDDLEWARE = [
@@ -61,7 +61,6 @@ MIDDLEWARE = [
 CSRF_FAILURE_VIEW = "lists.views.csrf_failure"
 ROOT_URLCONF = "WishListApp.urls"
 
-TEMPLATE_DIRS = (os.path.join(BASE_DIR, "templates"),)
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
