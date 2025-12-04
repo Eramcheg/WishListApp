@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from common.widgets import IconPickerWidget
 
@@ -20,9 +21,7 @@ class ProfileForm(forms.ModelForm):
         fields = [
             "display_name",
             "bio",
-            "is_public",
             "birth_date",
-            "birth_date_visibility",
             "icon",
             "avatar",
         ]
@@ -38,6 +37,17 @@ class ProfileForm(forms.ModelForm):
         self.fields["bio"].widget.attrs[
             "placeholder"
         ] = "Tell others a bit about yourself or your wishlist style."
+
+    def clean_birth_date(self):
+        birth_date = self.cleaned_data.get("birth_date")
+        if not birth_date:
+            return birth_date
+
+        today = timezone.now().date()
+
+        if birth_date > today:
+            raise forms.ValidationError("The date of birth cannot be in the future.")
+        return birth_date
 
 
 class PrivacyForm(forms.ModelForm):

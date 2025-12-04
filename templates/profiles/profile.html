@@ -116,9 +116,9 @@
                 <label class="text-sm font-medium" for="id_icon">Birth date</label>
                 {{ form.birth_date|add_class:"inp" }}
                 {% if form.birth_date.errors %}
-                  <p class="text-xs text-destructive">
-                    {{ form.birth_date.errors|striptags }}
-                  </p>
+                  {% for error in form.birth_date.errors %}
+                      <div class="text-error text-sm">{{ error }}</div>
+                  {% endfor %}
                 {% else %}
                   <p class="text-xs text-muted-foreground">
                     Your date of birth (optional).
@@ -151,9 +151,9 @@
                 class="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-secondary/80"
               >
               {% if form.avatar.errors %}
-                <p class="text-xs text-destructive mt-1">
-                  {{ form.avatar.errors|striptags }}
-                </p>
+                {% for error in form.avatar.errors %}
+                    <div class="text-error text-sm">{{ error }}</div>
+                {% endfor %}
               {% else %}
                 <p class="text-xs text-muted-foreground">
                   JPG, PNG or WEBP. Square images work best.

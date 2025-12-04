@@ -20,11 +20,16 @@
   </div>
 
   {% if user.is_authenticated %}
+
       <div class="flex flex-col items-center space-y-5">
+          <a href="{% url 'general_settings' %}" class="group text-muted hover:text-accent transition" title="Settings">
+            <i data-lucide="settings" class="w-7 h-7"></i>
+          </a>
+          <hr>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
             <button type="submit"
-                    class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded transition">
+                    class=" cursor-pointer px-3 py-1 rounded transition">
               <a class="text-muted hover:text-accent transition" title="Logout">
                   <i data-lucide="log-out" class="w-6 h-6"></i>
               </a>

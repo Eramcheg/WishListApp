@@ -31,6 +31,7 @@
   i[data-lucide] {
     @apply text-muted hover:text-accent transition;
   }
+  hr { @apply border-text-muted my-1 w-full;}
 }
 
 @utility inp {
@@ -79,12 +80,16 @@
 
   .icon-btn{
     @apply relative flex items-center justify-center
-           w-12 h-12 p-3 bg-accent
+            bg-accent cursor-pointer
             bg-transparent
            transition-colors duration-200;
     border-radius: 0.75rem;
     border: 2px solid;
   }
+
+  .icon-btn-sm{@apply px-1 py-1 text-sm; }
+  .icon-btn-msd{@apply px-1.5 py-1.5 text-sm; }
+  .icon-btn-md{@apply px-2 py-2 text-sm; }
 
   .form-field { @apply space-y-1; }
   .form-label { @apply block text-sm font-medium text-text; }

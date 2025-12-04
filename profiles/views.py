@@ -1,10 +1,11 @@
 # profiles/views.py
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
-from django.views.generic import DetailView, TemplateView, UpdateView
+from django.views.generic import DetailView, UpdateView
 
 from lists.models import Wishlist
 from profiles.forms import PrivacyForm, ProfileForm
@@ -17,8 +18,14 @@ profile_tabs = [
     {
         "key": "general",
         "label": "General settings",
-        "url": reverse_lazy("wishlists_shared_with_me"),
+        "url": reverse_lazy("general_settings"),
         "icon": "settings",
+    },
+    {
+        "key": "appearance",
+        "label": "Appearance",
+        "url": reverse_lazy("appearance_settings"),
+        "icon": "palette",
     },
     {
         "key": "privacy",
@@ -43,6 +50,15 @@ class ProfileView(LoginRequiredMixin, UpdateView):
         # после сохранения остаёмся на той же странице
         return reverse_lazy("profile_root")
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Profile updated.")
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Fix the errors below.")
+        return super().form_invalid(form)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["user"] = self.request.user
@@ -50,9 +66,26 @@ class ProfileView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class SettingsView(LoginRequiredMixin, TemplateView):
+class GeneralSettingsView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    form_class = PrivacyForm
     template_name = "profiles/settings.html"
-    # позже: тема, язык и т.п.
+    context_object_name = "profile"
+
+    def get_object(self, queryset=None):
+        return self.request.user.profile
+
+    def get_success_url(self):
+        return reverse_lazy("general_settings")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Settings updated.")
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Fix the errors below.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -72,6 +105,43 @@ class PrivacySettingsView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("privacy_settings")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Settings updated.")
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Fix the errors below.")
+        return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["user"] = self.request.user
+        ctx["tabs"] = profile_tabs
+        return ctx
+
+
+class AppearanceSettingsView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    form_class = PrivacyForm
+    template_name = "profiles/appearance.html"
+    context_object_name = "profile"
+
+    def get_object(self, queryset=None):
+        return self.request.user.profile
+
+    def get_success_url(self):
+        return reverse_lazy("appearance_settings")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Settings updated.")
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Fix the errors below.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

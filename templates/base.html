@@ -18,12 +18,18 @@
     <nav class="bg-accent text-white shadow mb-6">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <a href="/" class="font-bold text-xl hover:opacity-90">🎁 WishList</a>
-
           <div class="flex items-center gap-6">
-
             {% if user.is_authenticated %}
-              <span class="opacity-90">Hi, {{ user.profile.display_name|default:user.username }}</span>
-
+              <a href="{% url 'public_profile' user.username %}" class="opacity-90 flex items-end gap-1">
+                  <div class="h-7 w-7 rounded-full border bg-muted overflow-hidden flex items-center justify-center text-sm">
+                    {% if request.user.profile.avatar %}
+                      <img src="{{ wishlist.owner.profile.avatar.url }}" class="h-full w-full object-cover">
+                    {% else %}
+                      {{ request.user.username|first|upper }}
+                    {% endif %}
+                  </div>
+                  {{ user.profile.display_name|default:user.username }}
+              </a>
             {% else %}
               <a href="{% url 'login' %}" class="hover:opacity-90 mr-2">Login</a>
               <a href="{% url 'register' %}"

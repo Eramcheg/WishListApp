@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% block title %}Profile of {{ profile.display_name|default:profile.user.username }}{% endblock %}
 {% block content %}
 {{ profile }}
 <div class="max-w-6xl mx-auto py-10 space-y-8">
