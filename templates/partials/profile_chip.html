@@ -1,0 +1,33 @@
+<header class="space-y-3 mb-6">
+  <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+    <div class="flex items-center gap-2">
+      <a href="{% url 'public_profile' wishlist.owner.username %}"
+         class="flex items-center gap-2">
+        <div class="h-10 w-10 rounded-full border bg-muted overflow-hidden flex items-center justify-center text-sm">
+          {% if wishlist.owner.profile.avatar %}
+            <img src="{{ wishlist.owner.profile.avatar.url }}" class="h-full w-full object-cover">
+          {% else %}
+            {{ wishlist.owner.username|first|upper }}
+          {% endif %}
+        </div>
+        <div class="leading-tight">
+          <div class="font-medium text-base">
+            {{ wishlist.owner.profile.display_name|default:wishlist.owner.username }}
+          </div>
+          <div class="text-base text-muted-foreground">@{{ wishlist.owner.username }}</div>
+        </div>
+      </a>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 text-base">
+      <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+        <span class="h-5 w-0.5 rounded-full absolute"></span>
+        {% if wishlist.is_public %}Public{% else %}Private{% endif %}
+      </span>
+
+      <span>· {{ wishlist.items.count }} item{{ wishlist.items.count|pluralize }}</span>
+      <span class="flex gap-1">· <i data-lucide="eye"></i> {{ wishlist.public_view_count }} view{{ wishlist.public_view_count|pluralize }}</span>
+      <span>· Updated {{ wishlist.updated_at|date:"M d, Y" }}</span>
+    </div>
+  </div>
+</header>

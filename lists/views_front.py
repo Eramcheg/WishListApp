@@ -213,10 +213,26 @@ class ShareTokenWishlistView(DetailView):
     template_name = "lists/wishlist_shared.html"
     slug_field = "share_token"
     slug_url_kwarg = "token"
+    paginate_by = 8
 
     def get_object(self, queryset=None):
         obj = get_object_or_404(Wishlist, share_token=self.kwargs["token"])
         return obj
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        items = self.object.items.all()
+        paginator = Paginator(items, self.paginate_by)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
+        context.update(
+            {
+                "paginator": paginator,
+                "page_obj": page_obj,
+                "is_paginated": page_obj.has_other_pages(),
+                "object_list": page_obj.object_list,
+            }
+        )
+        return context
 
 
 @method_decorator(login_required, name="dispatch")
