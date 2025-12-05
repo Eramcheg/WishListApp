@@ -41,6 +41,7 @@
                   <a href="{% url 'wishlist_edit' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Edit wishlist</a>
                   <a href="{% url 'items_bulk_add' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Add multiple</a>
                   <a href="{% url 'items_import' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Import</a>
+                  <a href="{% url 'wishlist_access' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Co-authors</a>
                   {% if object.share_token %}
 {#                      <p class="text-sm">Anyone with this link can view your wishlist:</p>#}
 
@@ -54,9 +55,8 @@
                         <button type="submit" class="cursor-pointer">Generate share link</button>
                       </form>
                   {% endif %}
-                  <a href="{% url 'wishlist_access' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Co-authors</a>
                   {% if object.is_public %}
-                    <a href="{% url 'public_wl_detail' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Open public link</a>
+                    <a href="{% url 'public_wl_detail' object.slug %}" class="block px-3 py-2 rounded hover:bg-border/80">Preview</a>
                   {% endif %}
                   <div class="my-1 border-t border-border/60"></div>
                   <a href="{% url 'wishlist_delete' object.slug %}" class="block px-3 py-2 rounded text-error hover:bg-error/10">Delete</a>
@@ -84,7 +84,7 @@
                 {% url 'item_edit' wishlist_slug=object.slug item_slug=item.slug as edit_url %}
                 {% url 'item_delete' wishlist_slug=object.slug item_slug=item.slug as delete_url %}
                 {% with action_html='<a href="'|add:edit_url|add:'" class="btn btn-secondary btn-xsm">Edit</a> <a href="'|add:delete_url|add:'" class="btn btn-danger btn-xsm">Delete</a>'%}
-                    <li>
+                    <li class="h-full">
                       {% include "partials/card_tile.html" with href=item.url image_url=item.image_url title=item.title subtitle=item.note actions=action_html to_trunk=True%}
                     </li>
                 {% endwith %}

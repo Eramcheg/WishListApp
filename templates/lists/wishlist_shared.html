@@ -10,8 +10,8 @@
 {% include "partials/pagination.html" %}
 <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-2" aria-busy="false">
     {% for item in object_list %}
-        <li>
-            {% include "partials/card_tile.html" with href=item.url image_url=item.image_url title=item.title subtitle=item.note actions=action_html%}
+        <li class="h-full">
+            {% include "partials/card_tile.html" with href=item.url image_url=item.image_url title=item.title subtitle=item.note actions=action_html to_trunk=True %}
         </li>
     {% empty %}
         {% include "partials/empty_state.html" %}

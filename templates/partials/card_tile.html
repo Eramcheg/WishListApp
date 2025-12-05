@@ -1,52 +1,50 @@
-<div class="vcard card-tile-loader {% if image_url %}is-loading{% endif %}" id="card-{{ forloop.counter0 }}">
-    <div>
-        <div class="vcard-top relative">
-          {% if image_url %}
-            <img src="{{ image_url }}" alt="" class="vcard-img opacity-0 transition-opacity duration-300"
-                 loading="lazy"
-                 onload="this.closest('.card-tile-loader').classList.remove('is-loading'); this.classList.remove('opacity-0'); this.classList.add('opacity-100');"
-                 onerror="this.closest('.card-tile-loader').classList.remove('is-loading'); this.style.display='none';">
+<div class="vcard card-tile-loader h-full flex flex-col {% if image_url %}is-loading{% endif %}" id="card-{{ forloop.counter0 }}">
+    <div class="vcard-top relative">
+      {% if image_url %}
+        <img src="{{ image_url }}" alt="" class="vcard-img opacity-0 transition-opacity duration-300"
+             loading="lazy"
+             onload="this.closest('.card-tile-loader').classList.remove('is-loading'); this.classList.remove('opacity-0'); this.classList.add('opacity-100');"
+             onerror="this.closest('.card-tile-loader').classList.remove('is-loading'); this.style.display='none';">
 
-            <div class="image-skeleton absolute inset-0 {{ image_url|yesno:'skeleton-img-block,' }}"></div>
-          {% else %}
-            <div class="absolute inset-0 flex items-center justify-center text-muted">
-              {% if icon %}<i data-lucide="{{ icon }}" class="w-8 h-8"></i>{% endif %}
-            </div>
-          {% endif %}
+        <div class="image-skeleton absolute inset-0 {{ image_url|yesno:'skeleton-img-block,' }}"></div>
+      {% else %}
+        <div class="absolute inset-0 flex items-center justify-center text-muted">
+          {% if icon %}<i data-lucide="{{ icon }}" class="w-8 h-8"></i>{% endif %}
         </div>
+      {% endif %}
+    </div>
 
-        <div class="vcard-body">
-            {% if title_link == True %}
-                <a href="{{ href }}" class="vcard-title group text-muted hover:text-accent transition {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</a>
+    <div class="vcard-body grow">
+        {% if title_link == True %}
+            <a href="{{ href }}" class="vcard-title group text-muted hover:text-accent transition {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</a>
+        {% else %}
+            <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
+        {% endif %}
+        {% if subtitle %}
+            {% if redirect_show_btn %}
+                <div class="vcard-subtitle truncate-1"
+                     >{{ subtitle }}</div>
+                <a href="{{ href }}" class="truncate-toggle">Read more</a>
             {% else %}
-                <div class="vcard-title {% if to_trunk %}truncate-1{% else %}text-wrap{% endif %}">{{ title }}</div>
+                <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}"
+                     >{{ subtitle }}</div>
             {% endif %}
-            {% if subtitle %}
-                {% if redirect_show_btn %}
-                    <div class="vcard-subtitle truncate-1"
-                         >{{ subtitle }}</div>
-                    <a href="{{ href }}" class="truncate-toggle">Read more</a>
-                {% else %}
-                    <div class="vcard-subtitle {% if to_trunk %}truncate-2{% else %}text-wrap{% endif %}"
-                         data-truncate data-lines="1" data-more="Show more" data-less="Show less">{{ subtitle }}</div>
-                {% endif %}
-            {% endif %}
-        </div>
+        {% endif %}
+    </div>
 
-        <div class="vcard-bottom">
-            {% if title_link != True %}
-                <a href="{{ href }}" class="group text-muted hover:text-accent transition">
-                    <i data-lucide="link" class="w-6 h-6"></i>
-                </a>
-            {% endif %}
-            <div class="flex items-center gap-2">
-                {% if badges %}
-                    {% for b in badges %}<span class="badge">{{ b.text }}</span>{% endfor %}
-                {% endif %}
-            </div>
-            {% if actions %}
-                <div class="actions">{{ actions|safe }}</div>
+    <div class="vcard-bottom mt-auto">
+        {% if title_link != True %}
+            <a href="{{ href }}" class="group text-muted hover:text-accent transition">
+                <i data-lucide="link" class="w-6 h-6"></i>
+            </a>
+        {% endif %}
+        <div class="flex items-center gap-2">
+            {% if badges %}
+                {% for b in badges %}<span class="badge">{{ b.text }}</span>{% endfor %}
             {% endif %}
         </div>
+        {% if actions %}
+            <div class="actions">{{ actions|safe }}</div>
+        {% endif %}
     </div>
 </div>
