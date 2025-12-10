@@ -1,97 +1,176 @@
 {% extends "base.html" %}
+
 {% block title %}Profile of {{ profile.display_name|default:profile.user.username }}{% endblock %}
+
 {% block content %}
-{{ profile }}
-<div class="max-w-6xl mx-auto py-10 space-y-8">
 
-  <!-- Header профиля -->
-  <header class="rounded-2xl border bg-card/80 backdrop-blur-sm p-6 shadow-sm flex gap-4">
-    <!-- Аватар -->
-    <div class="relative h-16 w-16 rounded-full overflow-hidden bg-muted flex items-center justify-center text-2xl">
-      {% if profile.avatar %}
-        <img
-          src="{{ profile.avatar.url }}"
-          alt="{{ profile.display_name }} avatar"
-          class="h-full w-full object-cover"
-        >
-      {% else %}
-        <span>
-          {% if profile.icon %}
-              <i data-lucide="{{ profile.icon }}" class="w-10 h-10"></i>
+  {# ====================== БАННЕР ПРОФИЛЯ ====================== #}
+  <section class="relative h-40 rounded-2xl overflow-hidden bg-accent">
+{#     :#}
+{#       {% if profile.banner %}#}
+{#         <img#}
+{#           src="{{ profile.banner.url }}"#}
+{#           alt="{{ profile.display_name }} banner"#}
+{#           class="h-full w-full object-cover"#}
+{#         >#}
+{#       {% endif %}#}
+{#    #}
+  </section>
+
+  {# ====================== ОСНОВНАЯ СЕТКА: СЛЕВА ПРОФИЛЬ, СПРАВА ВИШЛИСТЫ ====================== #}
+  <div class="mt-4 flex">
+
+    {# --------- ЛЕВАЯ КОЛОНКА: ПРОФИЛЬ + ABOUT --------- #}
+    <div class="space-y-4">
+
+      {# Карточка профиля, чуть наезжает на баннер #}
+      <header class="relative rounded-2xl bg-card/90 p-6 space-y-4 shadow-sm">
+
+        <div class="flex items-center gap-3">
+          {# Аватар / иконка / буква #}
+          <div class="h-16 w-16 rounded-full overflow-hidden bg-muted flex items-center justify-center text-2xl shrink-0 border-4 border-background">
+            {% if profile.avatar %}
+              <img
+                src="{{ profile.avatar.url }}"
+                alt="{{ profile.display_name }} avatar"
+                class="h-full w-full object-cover"
+              >
+            {% else %}
+              {% if profile.icon %}
+                <i data-lucide="{{ profile.icon }}" class="w-10 h-10"></i>
+              {% else %}
+                <span>{{ profile.user.username|first|upper }}</span>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          <div class="min-w-0">
+            <p class="text-xl font-semibold truncate">
+              {{ profile.display_name|default:profile.user.username }}
+            </p>
+            <p class="text-sm text-muted-foreground truncate">
+              @{{ profile.user.username }}
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          {% if profile.bio %}
+            <p class="leading-relaxed">
+              {{ profile.bio }}
+            </p>
           {% else %}
-            {{ profile.user.username|first|upper }}
+            <p class="text-muted-foreground/80 italic">
+              This user hasn’t written a bio yet.
+            </p>
           {% endif %}
-        </span>
-      {% endif %}
+
+
+          <div class="mt-1">
+            <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+              About
+            </h2>
+            <p>
+              Public wishlists and activity will appear here later.
+            </p>
+          </div>
+          <hr>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+            <span>
+              Member since {{ profile.user.date_joined|date:"F Y" }}
+            </span>
+
+            {% with bday=profile.get_public_birthdate_display %}
+              {% if bday %}
+                <span>•</span>
+                <span>Birthday: {{ bday }}</span>
+              {% endif %}
+            {% endwith %}
+          </div>
+      </header>
+      <section class="rounded-2xl bg-card px-5 text-sm text-muted-foreground space-y-2">
+
+      </section>
+      <section class="rounded-2xl bg-card  text-sm text-muted-foreground space-y-2">
+          <a href="" class="btn-primary btn w-full"><i data-lucide="user-plus"></i>&nbsp Send friend request</a>
+          <a href="" class="btn-secondary btn w-full"><i data-lucide="send"></i>&nbspMessage</a>
+      </section>
+
+      <section class="rounded-2xl bg-card px-5 pb-5 text-sm text-muted-foreground space-y-4">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+            Stats
+          </h2>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span>Friends</span>
+              <span class="font-medium text-foreground">
+{#                {{ friends_count }}#}
+                  0
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span>Public wishlists</span>
+              <span class="font-medium text-foreground">
+                  {{public_wishlists.count}}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span>Wishlists views</span>
+              <span class="font-medium text-foreground">
+{#                {{ wishlist_views_count }}#}
+                  10
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span>Wishes</span>
+              <span class="font-medium text-foreground">
+{#                {{ fulfilled_wishes_count }}#}
+                  0
+              </span>
+            </div>
+          </div>
+      </section>
+
     </div>
 
-    <div class="flex-1 space-y-2">
-      <div class="flex items-center gap-2">
-        <span class="text-xl font-semibold">
-          {{ profile.display_name }}
-        </span>
+    {# --------- ПРАВАЯ КОЛОНКА: ПУБЛИЧНЫЕ ВИШЛИСТЫ --------- #}
+    <section class="rounded-2xl bg-card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-medium">Public wishlists</h2>
+        <div class="flex justify-end">
+          {% include "partials/list_filters.html" with include_search=False %}
+        </div>
+        {# позже можно добавить “View all” #}
       </div>
 
-      <p class="text-base text-muted-foreground">
-        @{{ profile.user.username }}
-      </p>
-
-      {% if profile.bio %}
-        <p class="text-sm leading-relaxed mt-1">
-          {{ profile.bio }}
-        </p>
-      {% else %}
-        <p class="text-sm text-muted-foreground/80 italic mt-1">
-          This user hasn’t written a bio yet.
-        </p>
-      {% endif %}
-
-      <div class="flex flex-wrap gap-3 text-xs text-muted-foreground mt-3">
-        <span>
-          Member since {{ profile.user.date_joined|date:"F Y" }}
-        </span>
-
-        {% with bday=profile.get_public_birthdate_display %}
-          {% if bday %}
-            <span>•</span>
-            <span>Birthday: {{ bday }}</span>
-          {% endif %}
-        {% endwith %}
-      </div>
-    </div>
-  </header>
-
-  <section class="rounded-2xl bg-card p-5 text-sm text-muted-foreground space-y-2">
-    <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
-      About
-    </h2>
-    <p>
-      Public wishlists and activity will appear here later.
-    </p>
-  </section>
-
-  <!-- Секция для будущих публичных вишлистов -->
-  <section class="rounded-2xl bg-card p-5">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-medium">Public wishlists</h2>
-      {# позже можно добавить “View all” #}
-    </div>
-
+      {% include "partials/pagination.html" %}
       <ul
-          id="tile-grid"
-          class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-          aria-busy="false"
-        >
-          {% for wl in public_wishlists %}
-            {% url 'public_wl_detail' wl.slug as wl_url %}
-                <li>
-                  {% include "partials/card_tile.html" with href=wl_url redirect_show_btn=True title_link=True icon=wl.icon title=wl.title subtitle=wl.description|default:"No description yet" %}
-                </li>
-          {% empty %}
-            {% include "partials/empty_state.html" with page_type='public_profile' %}
-          {% endfor %}
-        </ul>
-  </section>
+        id="tile-grid"
+        class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        aria-busy="false"
+      >
+        {% for wl in object_list %}
+          {% url 'public_wl_detail' wl.slug as wl_url %}
+          {% if wl.event_short and wl.event_long %}
+              {% with action_html='<div class="item-special mt-1 flex items-center gap-1 text-accent"><i data-lucide="calendar" class="w-5 h-5"></i><span class="spec-text" data-long="'|add:wl.event_long|add:'">'|add:wl.event_short|add:'</span></div>'%}
+                  <li>
+                    {% include "partials/card_tile.html" with href=wl_url redirect_show_btn=True title_link=True icon=wl.icon title=wl.title subtitle=wl.description|default:"No description yet" actions=action_html%}
+                  </li>
+              {% endwith %}
+            {% else %}
+                  <li>
+                    {% include "partials/card_tile.html" with href=wl_url redirect_show_btn=True title_link=True icon=wl.icon title=wl.title subtitle=wl.description|default:"No description yet" actions=action_html%}
+                  </li>
+            {% endif %}
+        {% empty %}
+          {% include "partials/empty_state.html" with page_type='public_profile' %}
+        {% endfor %}
+      </ul>
+    </section>
 
-</div>
+  </div>
 {% endblock %}

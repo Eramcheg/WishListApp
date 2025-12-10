@@ -1,5 +1,6 @@
 # lists/forms.py
 import re
+from datetime import date
 from urllib.parse import urlparse
 
 from django import forms
@@ -47,7 +48,7 @@ def sanitize_description(text: str) -> str:
 class WishlistForm(forms.ModelForm):
     class Meta:
         model = Wishlist
-        fields = ["title", "icon", "description", "is_public"]
+        fields = ["title", "icon", "description", "is_public", "event_name", "event_date"]
         error_messages = {
             "title": {
                 "required": "Title is required.",
@@ -56,6 +57,7 @@ class WishlistForm(forms.ModelForm):
         }
         widgets = {
             "icon": IconPickerWidget(),
+            "event_date": forms.DateInput(attrs={"type": "date"}),
         }
 
     def clean_title(self):
@@ -101,6 +103,19 @@ class WishlistForm(forms.ModelForm):
             raise forms.ValidationError("Description seems too repetitive or meaningless.")
 
         return desc
+
+    def clean(self):
+        cleaned_data = super().clean()
+        event_name = cleaned_data.get("event_name")
+        event_date = cleaned_data.get("event_date")
+
+        if event_date and not event_name:
+            cleaned_data["event_name"] = cleaned_data.get("title")
+
+        if event_date and event_date < date(2000, 1, 1):
+            self.add_error("event_date", "Event date looks too far in the past.")
+
+        return cleaned_data
 
 
 class ItemForm(forms.ModelForm):

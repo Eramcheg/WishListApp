@@ -38,6 +38,9 @@ class Wishlist(models.Model):
     share_token = models.CharField(max_length=32, blank=True, null=True, unique=True)
     slug = models.SlugField(max_length=180, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    event_name = models.CharField(max_length=120, blank=True, help_text="Event name(optional).")
+    event_date = models.DateField(null=True, blank=True, help_text="Event date(optional).")
     icon = models.CharField(
         max_length=16,
         blank=True,
@@ -100,6 +103,22 @@ class Wishlist(models.Model):
 
         return policies.can_edit(user, self).allowed
 
+    @property
+    def event_short(self):
+        if self.event_date:
+            return self.event_date.strftime("%d.%m")
+        return self.event_name or ""
+
+    @property
+    def event_long(self):
+        if self.event_name and self.event_date:
+            return f"{self.event_name} · {self.event_date:%Y-%m-%d}"
+        if self.event_name:
+            return self.event_name
+        if self.event_date:
+            return self.event_date.strftime("%Y-%m-%d")
+        return ""
+
 
 class Item(models.Model):
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")
@@ -119,6 +138,7 @@ class Item(models.Model):
     is_purchased = models.BooleanField(default=False)
     is_reserved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     slug = models.SlugField(max_length=220, blank=True, null=True)
 
     class Meta:
@@ -171,6 +191,8 @@ class WishlistAccess(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishlist_accesses"
     )
     role = models.CharField(max_length=8, choices=ROLE_CHOICES, default=VIEW)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = [("wishlist", "user")]

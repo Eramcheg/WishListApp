@@ -23,6 +23,13 @@
       {% if subtitle %}
         <div class="item-subtitle truncate-2">{{ subtitle }}</div>
       {% endif %}
+
+      {% if special_short and special_long %}
+        <div class="item-special mt-1 flex items-center gap-1 text-accent">
+            <i data-lucide="calendar" class="w-5 h-5"></i>
+            <span class="spec-text" data-long="{{ special_long }}">{{ special_short }}</span>
+        </div>
+      {% endif %}
     </div>
 
     <!-- RIGHT -->

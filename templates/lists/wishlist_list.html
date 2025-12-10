@@ -15,12 +15,19 @@
     {% for wl in object_list %}
       {% url 'wishlist_detail' wl.slug as wl_url %}
       {% url 'wishlist_edit'   wl.slug as edit_url %}
-      {% with action_html='<a href="'|add:edit_url|add:'" class="btn-secondary btn">Edit</a>' %}
-          <li>
-            {% include "partials/card_row.html" with href=wl_url icon=wl.icon title=wl.title subtitle=wl.description|default:"No description" meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
-          </li>
-      {% endwith %}
-
+      {% if wl.event_short and wl.event_long %}
+          {% with action_html='<div class="item-special mt-1 flex items-center gap-1 text-accent"><i data-lucide="calendar" class="w-7 h-7"></i><span class="spec-text" data-long="'|add:wl.event_long|add:'">'|add:wl.event_short|add:'</span></div><a href="'|add:edit_url|add:'" class="btn-secondary btn">Edit</a>'  %}
+              <li>
+                {% include "partials/card_row.html" with href=wl_url icon=wl.icon title=wl.title subtitle=wl.description|default:"No description"  meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
+              </li>
+          {% endwith %}
+      {% else %}
+          {% with action_html='<a href="'|add:edit_url|add:'" class="btn-secondary btn">Edit</a>'  %}
+              <li>
+                {% include "partials/card_row.html" with href=wl_url icon=wl.icon title=wl.title subtitle=wl.description|default:"No description"  meta=wl.updated_at|date:"M d, Y" actions=action_html stacked=1 %}
+              </li>
+          {% endwith %}
+      {% endif %}
     {% empty %}
       {% include "partials/empty_state.html" with page_type='edit_page' %}
     {% endfor %}

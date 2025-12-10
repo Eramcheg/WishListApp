@@ -7,7 +7,7 @@
 <form method="post" class="space-y-3">
     {% csrf_token %}
     {% if form.non_field_errors %}
-      <div class="bg-red-100 text-red-800 border border-red-300 p-3 rounded mb-3">
+      <div class="bg-bg text-error border border-error p-3 rounded mb-3">
         {% for error in form.non_field_errors %}
           <div>{{ error }}</div>
         {% endfor %}
@@ -17,8 +17,17 @@
     <div class="mb-3 form-field">
         {{ form.title.label_tag }} {{ form.title|add_class:"inp-text" }}
         {% for error in form.title.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
+          <div class="text-error text-sm">{{ error }}</div>
         {% endfor %}
+        {% if form.title.errors %}
+            {% for error in form.title.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+            {% endfor %}
+        {% else %}
+            <p class="text-xs text-muted-foreground">
+              Provide a name for your wishlist.
+            </p>
+        {% endif %}
     </div>
     <div class="form-field">
       <label class="text-sm font-medium" for="id_icon">Icon / emoji</label>
@@ -35,16 +44,64 @@
     </div>
     <div class="mb-3 form-field">
         {{ form.description.label_tag }} {{ form.description|add_class:"area" }}
-        {% for error in form.description.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
+        {% if form.description.errors %}
+            {% for error in form.description.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+            {% endfor %}
+        {% else %}
+            <p class="text-xs text-muted-foreground">
+              Provide a short description of your wishlist. What is this for, why did you create it, etc.
+            </p>
+        {% endif %}
     </div>
     <div class="form-field">
         <label class="chk-row">
             {{ form.is_public|add_class:"chk" }} <span class="ml-2">Public</span>
         </label>
+        {% if form.is_public.errors %}
+            {% for error in form.is_public.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+            {% endfor %}
+        {% else %}
+            <p class="text-xs text-muted-foreground">
+              This checkbox makes this wishlist visible to everyone.
+            </p>
+      {% endif %}
     </div>
-    <a href="{{ cancel_url }}" class="ml-2 text-gray-600 underline">Cancel</a>
+    <h2 class="text-sm font-semibold text-muted-foreground mt-6">
+        Event (optional)
+    </h2>
+    <p class="text-xs text-muted-foreground mb-2">
+        You can link this wishlist to a specific event or date.
+        These fields are optional, but if filled, the wishlist will appear in “Upcoming events”.
+    </p>
+    <div class="mb-3 form-field">
+        {{ form.event_name.label_tag }} {{ form.event_name|add_class:"inp-text" }}
+        {% if form.event_name.errors %}
+          {% for error in form.event_name.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            Event name.
+          </p>
+        {% endif %}
+    </div>
+    <div class="form-field">
+        <label class="text-sm font-medium" for="id_icon">Event name</label>
+        {{ form.event_date|add_class:"inp" }}
+        {% if form.event_date.errors %}
+          {% for error in form.event_date.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            Event date.
+          </p>
+        {% endif %}
+    </div>
+
+    <a href="{{ cancel_url }}" class="ml-2 text-muted underline">Cancel</a>
     <button type="submit" class="btn-primary btn"> {% if object %}Save{% else %}Create{% endif %}</button>
 </form>
 {% endblock %}

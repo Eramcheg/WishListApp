@@ -1,15 +1,16 @@
 <form method="get" class="mb-6 flex flex-wrap items-center gap-3">
-
-  <div class="form-field">
-      <!-- поле поиска -->
-      <input
-        type="text"
-        name="q"
-        value="{{ q|default:'' }}"
-        placeholder="Search by title…"
-        class="inp-text"
-      />
-  </div>
+  {% if include_search %}
+      <div class="form-field">
+          <!-- поле поиска -->
+          <input
+            type="text"
+            name="q"
+            value="{{ q|default:'' }}"
+            placeholder="Search by title…"
+            class="inp-text"
+          />
+      </div>
+  {% endif %}
   <!-- сортировка -->
   <div class="form-field">
       <select

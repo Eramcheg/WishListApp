@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -226,6 +227,13 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
     model = Profile
     template_name = "profiles/public_profile.html"
     context_object_name = "profile"
+    paginate_by = 8
+    ORDERING_MAP = {
+        "created": "created_at",
+        "-created": "-created_at",
+        "title": "title",
+        "-title": "-title",
+    }
 
     def get_object(self, queryset=None):
         username = self.kwargs["username"]
@@ -238,11 +246,39 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
 
         return profile
 
+    def get_queryset(self):
+        qs = (
+            Wishlist.objects.filter(owner=self.object.user, is_public=True)
+            .select_related("owner")
+            .distinct()
+        )
+
+        q = self.request.GET.get("q")
+        sort = self.request.GET.get("sort", "-created")
+        order_by = self.ORDERING_MAP.get(sort, "-created_at")
+
+        if q:
+            qs = qs.filter(title__icontains=q)
+
+        return qs.order_by(order_by)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        profile = self.object  # то же самое, что self.get_object()
+        public_wishlists = self.get_queryset()
 
-        public_wishlists = Wishlist.objects.filter(owner=profile.user, is_public=True)
+        paginator = Paginator(public_wishlists, self.paginate_by)
+        page_obj = paginator.get_page(self.request.GET.get("page"))
 
-        context["public_wishlists"] = public_wishlists
+        context.update(
+            {
+                "paginator": paginator,
+                "page_obj": page_obj,
+                "is_paginated": page_obj.has_other_pages(),
+                "object_list": page_obj.object_list,
+                "public_wishlists": public_wishlists,
+            }
+        )
+
+        context["q"] = self.request.GET.get("q", "")
+        context["sort"] = self.request.GET.get("sort", "-created")
         return context

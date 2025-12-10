@@ -14,7 +14,7 @@
            {% url 'wishlist_detail' wl.slug as edit_url %}
            {% with full_title=wl.title|add:" by "|add:wl.owner.username %}
                {% if wl|can_edit:request.user %}
-                  {% with action_html='<a href="'|add:open_url|add:'" class="btn btn-secondary btn-xsm">View</a> <a href="'|add:edit_url|add:'" class="btn btn-primary btn-xsm">Edit</a>' %}
+                  {% with action_html='<a href="'|add:open_url|add:'" class="btn btn-secondary btn-sm">View</a> <a href="'|add:edit_url|add:'" class="btn btn-primary btn-sm">Edit</a>' %}
                       <li>
                          {% include "partials/card_row.html" with image_url=wl.image_url icon="gift" title=full_title subtitle=wl.description|default:"No description" actions=action_html%}
                        </li>
