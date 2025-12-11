@@ -3,6 +3,7 @@ import secrets
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 # from django.utils.text import slugify
 from slugify import slugify
@@ -119,6 +120,10 @@ class Wishlist(models.Model):
             return self.event_date.strftime("%Y-%m-%d")
         return ""
 
+    def touch(self):
+        self.updated_at = timezone.now()
+        self.save(update_fields=["updated_at"])
+
 
 class Item(models.Model):
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")
@@ -129,12 +134,29 @@ class Item(models.Model):
         blank=True,
         related_name="wishlist_items_created",
     )
-    title = models.CharField(max_length=200, blank=False)
-    url = models.URLField(blank=True, validators=[https_only])
+    title = models.CharField(
+        max_length=200,
+        blank=False,
+        help_text="Name of the item, e.g. “Apple Watch”.",
+    )
+    url = models.URLField(
+        blank=True,
+        validators=[https_only],
+        help_text="Optional link to the product page or any related page."
+        " If provided, we’ll try to auto-fill title and image.",
+    )
     price_currency = models.CharField(max_length=10, blank=True)
     price_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    note = models.TextField(blank=True)
-    image_url = models.URLField(blank=True, validators=[validate_image_url])
+    note = models.TextField(
+        blank=True,
+        help_text="Optional note for yourself: size, color, price, promo codes, or any details",
+    )
+    image_url = models.URLField(
+        blank=True,
+        validators=[validate_image_url],
+        help_text="Optional direct link to an image. "
+        "Leave empty to use the image we detect from the URL above.",
+    )
     is_purchased = models.BooleanField(default=False)
     is_reserved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -166,7 +188,16 @@ class Item(models.Model):
         if not kwargs.pop("skip_full_clean", False):
             self.full_clean()
 
+        if self.wishlist_id:
+            self.wishlist.touch()
+
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        wishlist = self.wishlist
+        super().delete(*args, **kwargs)
+        if wishlist:
+            wishlist.touch()
 
     def can_view(self, user) -> bool:
         return self.wishlist.can_view(user)

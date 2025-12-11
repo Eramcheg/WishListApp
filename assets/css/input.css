@@ -281,7 +281,7 @@
   /* ---------- ВЕРТИКАЛЬНАЯ КАРТОЧКА (TOP | CENTER | BOTTOM) ---------- */
   .vcard { @apply bg-bg-secondary border border-border rounded-xl }
   .vcard-top { @apply relative w-full aspect-[16/9] bg-border/30; } /* можно поменять аспект */
-  .vcard-top img { @apply w-full h-full object-cover; }
+  .vcard-top img { @apply w-full h-full object-contain; }
   .vcard-body { @apply p-4; }
   .vcard-title { @apply text-base font-bold text-text;
   font-size: 18px;}

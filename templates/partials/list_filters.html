@@ -1,5 +1,7 @@
 <form method="get" class="mb-6 flex flex-wrap items-center gap-3">
-  {% if include_search %}
+  {% if include_search == False %}
+
+  {% else %}
       <div class="form-field">
           <!-- поле поиска -->
           <input

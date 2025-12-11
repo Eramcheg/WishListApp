@@ -1,3 +1,4 @@
+import json
 import time
 from urllib.parse import urljoin, urlparse
 
@@ -72,15 +73,34 @@ def enrich_from_url(url: str):
             or (soup.title.string.strip() if soup.title and soup.title.string else "")
         )
 
-        image = _meta(prop="og:image") or _meta(name="twitter:image")
+        image = (
+            _meta(name="twitter:image")
+            or _meta(name="twitter:image:src")
+            or _meta(prop="og:image")
+            or _meta(prop="og:image:url")
+            or _meta(prop="og:image:secure_url")
+        )
+
         if image:
             image = urljoin(url, image)
+
+        description = (
+            _meta(prop="og:description")
+            or _meta(name="twitter:description")
+            or _meta(name="description")
+        )
 
         data = {}
         if title:
             data["title"] = title
         if image:
             data["image_url"] = image
+        if description:
+            data["description"] = description
+
+        if "amazon." in host:
+            amazon_data = _enrich_amazon(soup, url)
+            data.update({k: v for k, v in amazon_data.items() if v})
 
         log_event(
             "og.fetch.ok",
@@ -101,3 +121,44 @@ def enrich_from_url(url: str):
         elapsed = int((time.time() - start) * 1000)
         log_event("og.fetch.error", None, None, host=host, err=str(e)[:100], ms=elapsed)
         return {}
+
+
+def _enrich_amazon(soup, url):
+    data = {}
+
+    # 1) Заголовок товара
+    title_el = soup.find(id="productTitle")
+    if title_el and title_el.get_text(strip=True):
+        data["title"] = title_el.get_text(strip=True)
+
+    # 2) Картинка товара
+    img = soup.find("img", id="landingImage")
+    img_url = None
+
+    if img:
+        # Приоритет: data-old-hires > data-a-dynamic-image > src
+        img_url = img.get("data-old-hires")
+
+        if not img_url:
+            dyn = img.get("data-a-dynamic-image")
+            if dyn:
+                try:
+                    # BeautifulSoup уже вернёт это как строку с нормальными кавычками
+                    dyn_dict = json.loads(dyn)
+                    # dyn_dict: { "url": [w,h], ... }
+                    # Возьмём картинку с максимальной шириной
+                    if isinstance(dyn_dict, dict):
+                        img_url = max(
+                            dyn_dict.items(),
+                            key=lambda item: item[1][0] if item[1] else 0,
+                        )[0]
+                except Exception:
+                    pass
+
+        if not img_url:
+            img_url = img.get("src")
+
+    if img_url:
+        data["image_url"] = urljoin(url, img_url)
+
+    return data

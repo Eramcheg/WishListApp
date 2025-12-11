@@ -3,42 +3,67 @@
 {% load widget_tweaks %}
 {% block title %}New item{% endblock %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">Add item to wishlist</h2>
+<h2 class="text-2xl font-bold mb-4">Add item to wishlist "{{ wishlist.title }}"</h2>
 <form method="post" class="space-y-3">
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div class="form-field">
         {{ form.title.label_tag }} {{ form.title|add_class:"inp-text" }}
-        {% for error in form.title.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
+        {% if form.title.errors %}
+          {% for error in form.title.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            {{ form.title.help_text }}
+          </p>
+        {% endif %}
     </div>
     <div class="form-field">
         {{ form.url.label_tag }} {{ form.url|add_class:"inp-text" }}
         {% if not object %}
-            <button type="button" id="btn-enrich" class="btn-primary btn"> Fill form from url </button>
+{#            <button type="button" id="btn-enrich" class="btn-primary btn"> Fill form from url </button>#}
         {% endif %}
-        {% for error in form.url.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
+        {% if form.url.errors %}
+          {% for error in form.url.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            {{ form.url.help_text }}
+          </p>
+        {% endif %}
     </div>
     <div class="form-field">
         {{ form.image_url.label_tag }} {{ form.image_url|add_class:"inp-text" }}
-        {% for error in form.image_url.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
+        {% if form.image_url.errors %}
+          {% for error in form.image_url.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            {{ form.image_url.help_text }}
+          </p>
+        {% endif %}
+
     </div>
     <div class="form-field">
         {{ form.note.label_tag }} {{ form.note|add_class:"area" }}
-        {% for error in form.note.errors %}
-          <div class="text-red-600 text-sm">{{ error }}</div>
-        {% endfor %}
+        {% if form.note.errors %}
+          {% for error in form.note.errors %}
+              <div class="text-error text-sm">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <p class="text-xs text-muted-foreground">
+            {{ form.note.help_text }}
+          </p>
+        {% endif %}
     </div>
     <a href="{{ cancel_url }}" class="btn-secondary btn ">Cancel</a>
     <button type="submit" class="btn-primary btn"> {% if object %}Save{% else %}Create{% endif %} </button>
     </form>
 <script>
-document.getElementById("btn-enrich").addEventListener("click", async () => {
+document.getElementById("id_url").addEventListener("change", async () => {
     const input = document.getElementById("id_url");
     const url = document.getElementById("id_url").value.trim();
     if (!url) return;
@@ -64,6 +89,8 @@ document.getElementById("btn-enrich").addEventListener("click", async () => {
             document.getElementById("id_title").value = data.title;
         if (data.image_url && !document.getElementById("id_image_url").value)
             document.getElementById("id_image_url").value = data.image_url;
+        {#if (data.description && !document.getElementById("id_note").value)#}
+        {#    document.getElementById("id_note").value = data.description;#}
     }
     catch(e) { console.error(e); }
 });
